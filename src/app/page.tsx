@@ -50,6 +50,8 @@ type LoginUser = {
   perfil: "Admin" | "Operario";
 };
 
+type LoginFeedback = "idle" | "charging" | "success" | "short";
+
 const iconByName: Record<string, LucideIcon> = {
   home: House,
   members: UsersRound,
@@ -77,12 +79,14 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loginFeedback, setLoginFeedback] = useState<LoginFeedback>("idle");
   const [calendarEntries, setCalendarEntries] = useState<CalendarEntry[]>([]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setLoading(true);
+    setLoginFeedback("charging");
 
     try {
       const response = await fetch(process.env.NEXT_PUBLIC_LOGIN_ENDPOINT ?? "/api/auth/login", {
@@ -94,6 +98,10 @@ export default function Home() {
 
       if (!response.ok) {
         setError(result.message ?? "No pudimos validar tus datos.");
+        setLoginFeedback("short");
+        window.setTimeout(() => {
+          setLoginFeedback((current) => current === "short" ? "idle" : current);
+        }, 1200);
         return;
       }
 
@@ -103,13 +111,22 @@ export default function Home() {
       }
 
       const menuResult: { items: MenuItem[] } = await menuResponse.json();
+      setLoginFeedback("success");
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 700));
       setUser(result.user);
       setMenuItems(menuResult.items);
     } catch {
+      setLoginFeedback("idle");
       setError("No pudimos conectar con el servicio. Intentalo nuevamente.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleLoginFieldChange(update: () => void) {
+    update();
+    setError("");
+    setLoginFeedback("idle");
   }
 
   function selectMenuItem(item: MenuItem) {
@@ -233,7 +250,7 @@ export default function Home() {
 
   if (!user) {
     return (
-      <main className="login-shell">
+      <main className={`login-shell login-state-${loginFeedback}`}>
         <section className="login-panel">
           <div className="login-form-wrap">
             <div className="form-heading">
@@ -249,9 +266,10 @@ export default function Home() {
                 <UsersRound size={17} aria-hidden="true" />
                 <input
                   autoComplete="username"
+                  disabled={loading}
                   id="username"
                   name="username"
-                  onChange={(event) => setUsername(event.target.value)}
+                  onChange={(event) => handleLoginFieldChange(() => setUsername(event.target.value))}
                   placeholder="Tu número de afiliado"
                   required
                   value={username}
@@ -268,9 +286,10 @@ export default function Home() {
                 <ShieldCheck size={17} aria-hidden="true" />
                 <input
                   autoComplete="current-password"
+                  disabled={loading}
                   id="password"
                   name="password"
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) => handleLoginFieldChange(() => setPassword(event.target.value))}
                   placeholder="Ingresá tu contraseña"
                   required
                   type={showPassword ? "text" : "password"}
@@ -280,9 +299,21 @@ export default function Home() {
 
               {error && <p className="form-error" role="alert">{error}</p>}
 
-              <button className="login-submit" disabled={loading} type="submit">
-                <span>{loading ? "Validando acceso..." : "Ingresar al portal"}</span>
-                <ArrowUpRight size={18} aria-hidden="true" />
+              <button className="login-submit" disabled={loading || loginFeedback === "short"} type="submit">
+                <span>{loginFeedback === "charging" ? "Verificando acceso..." : loginFeedback === "success" ? "Acceso correcto" : loginFeedback === "short" ? "Acceso rechazado" : "Ingresar al portal"}</span>
+                {loginFeedback === "idle"
+                  ? <ArrowUpRight aria-hidden="true" size={18} />
+                  : <svg aria-hidden="true" className="login-circuit-art" fill="none" viewBox="0 0 330 64">
+                    <path className="circuit-base" d="M8 32h92l20-20h76l20 20h40" />
+                    <path className="circuit-current" d="M8 32h92l20-20h76l20 20h40" pathLength="1" />
+                    <circle className="circuit-node" cx="8" cy="32" r="3" />
+                    <circle className="circuit-node" cx="100" cy="32" r="3" />
+                    <circle className="circuit-node" cx="256" cy="32" r="3" />
+                    <path className="circuit-spark" d="m151 2-8 12 9 2-8 13 18-17-10-1 7-9" />
+                    <path className="circuit-bulb" d="M302 14a18 18 0 0 0-10 33v5h20v-5a18 18 0 0 0-10-33Z" />
+                    <path className="circuit-filament" d="m298 27-4 7h6l-3 7 9-10h-6l3-4" />
+                    <path className="circuit-bulb-base" d="M294 56h16m-13 4h10" />
+                  </svg>}
               </button>
             </form>            
           </div>
