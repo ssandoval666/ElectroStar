@@ -36,13 +36,8 @@ import Calendar from "@/app/calendar";
 import ClientsHistoryAdmin from "@/app/clients-history-admin";
 import WorkOrdersAdmin from "@/app/work-orders-admin";
 import type { CalendarEntry } from "@/lib/calendar";
-
-type MenuItem = {
-  id: string;
-  label: string;
-  icon: string;
-  children?: MenuItem[];
-};
+import MenusAdmin from "@/app/menus-admin";
+import type { MenuItem } from "@/lib/menu";
 
 type LoginUser = {
   idusuario: string;
@@ -131,7 +126,7 @@ export default function Home() {
   }
 
   function selectMenuItem(item: MenuItem) {
-    if (item.children?.length) {
+    if (item.destination === null) {
       if (collapsed) setCollapsed(false);
       setExpandedGroups((current) =>
         current.includes(item.id)
@@ -415,7 +410,7 @@ export default function Home() {
         </header>
 
         <div className="dashboard-content">
-          {activeItem === "users" && user.perfil === "Admin" ? <UsersAdmin /> : activeItem === "products" && user.perfil === "Admin" ? <ProductsAdmin /> : activeItem === "budgets" && user.perfil === "Admin" ? <BudgetsAdmin /> : activeItem === "clients" && user.perfil === "Admin" ? <ClientsHistoryAdmin /> : activeItem === "work-orders" ? <WorkOrdersAdmin isAdmin={user.perfil === "Admin"} /> : activeItem === "calendar" ? <Calendar /> : (
+          {activeItem === "menu-management" && user.perfil === "Admin" ? <MenusAdmin onSaved={setMenuItems} /> : activeItem === "users" && user.perfil === "Admin" ? <UsersAdmin /> : activeItem === "products" && user.perfil === "Admin" ? <ProductsAdmin /> : activeItem === "budgets" && user.perfil === "Admin" ? <BudgetsAdmin /> : activeItem === "clients" && user.perfil === "Admin" ? <ClientsHistoryAdmin /> : activeItem === "work-orders" ? <WorkOrdersAdmin isAdmin={user.perfil === "Admin"} /> : activeItem === "calendar" ? <Calendar /> : (
             <>
           <div className="page-intro">
             <div>
@@ -537,16 +532,16 @@ function MenuBranch({
   setActiveItem: (id: string, label: string) => void;
 }) {
   const Icon = iconByName[item.icon] ?? CircleHelp;
-  const hasChildren = Boolean(item.children?.length);
+  const hasChildren = item.destination === null;
   const expanded = expandedGroups.includes(item.id);
-  const active = activeItem === item.id;
+  const active = activeItem === (item.destination ?? item.id);
 
   return (
     <div className="menu-branch">
       <button
         aria-expanded={hasChildren ? expanded : undefined}
         className={`nav-item ${active ? "nav-item-active" : ""} ${level ? "nav-subitem" : ""}`}
-        onClick={() => hasChildren ? onSelect(item) : setActiveItem(item.id, item.label)}
+        onClick={() => hasChildren ? onSelect(item) : setActiveItem(item.destination ?? item.id, item.label)}
         style={{ "--nav-level": level } as CSSProperties}
         title={item.label}
         type="button"
