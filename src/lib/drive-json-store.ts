@@ -2,7 +2,7 @@ import { google, type drive_v3 } from "googleapis";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-export type JsonEntityName = "usuarios.json" | "menu.json" | "productos.json" | "calendario.json" | "clientes.json" | "presupuestos.json";
+export type JsonEntityName = "usuarios.json" | "menu.json" | "productos.json" | "calendario.json" | "clientes.json" | "presupuestos.json" | "ordenes-trabajo.json";
 
 function driveIsConfigured() {
   const credentials = [

@@ -12,6 +12,8 @@ type MenuItem = {
 const initialMenu: MenuItem[] = [  
   { id: "calendar", label: "Agenda", icon: "calendar" },
   { id: "budgets", label: "Presupuestos", icon: "forms", profiles: ["Admin"] },
+  { id: "work-orders", label: "Órdenes de trabajo", icon: "briefcase" },
+  { id: "clients", label: "Clientes", icon: "members", profiles: ["Admin"] },
   {
     id: "administration",
     label: "Administración",
@@ -40,18 +42,20 @@ export async function GET() {
 
   try {
     const items = await readJsonEntity("menu.json", async () => initialMenu);
-    const initialAdministration = initialMenu[initialMenu.length - 1];
-    const existingAdministration = items.find((item) => item.id === "administration");
     let menuUpdated = false;
-    if (!existingAdministration) {
-      items.push(initialAdministration);
-      menuUpdated = true;
-    } else {
-      const requiredChildren = initialAdministration.children ?? [];
-      const existingChildren = existingAdministration.children ?? [];
+    for (const requiredItem of initialMenu) {
+      const existingItem = items.find((item) => item.id === requiredItem.id);
+      if (!existingItem) {
+        items.push(requiredItem);
+        menuUpdated = true;
+        continue;
+      }
+
+      const requiredChildren = requiredItem.children ?? [];
+      const existingChildren = existingItem.children ?? [];
       const missingChildren = requiredChildren.filter((child) => !existingChildren.some((existing) => existing.id === child.id));
       if (missingChildren.length) {
-        existingAdministration.children = [...existingChildren, ...missingChildren];
+        existingItem.children = [...existingChildren, ...missingChildren];
         menuUpdated = true;
       }
     }

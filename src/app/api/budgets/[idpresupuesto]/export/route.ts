@@ -17,6 +17,7 @@ const colors = {
 };
 const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 const dateFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" });
+const statusLabels = { borrador: "Borrador", enviado: "Enviado", aceptado: "Aceptado", rechazado: "Rechazado" } as const;
 
 export async function GET(_request: Request, { params }: RouteContext) {
   const admin = await getAdminSessionUser();
@@ -80,7 +81,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     pdf.font("Helvetica").fontSize(11).fillColor(colors.ink).text(budget.descripcion, margin, y, { width: contentWidth, lineGap: 2 });
     y = pdf.y + 17;
 
-    const clientCardHeight = 76;
+    const clientCardHeight = 88;
     pdf.roundedRect(margin, y, contentWidth, clientCardHeight, 4).fill(colors.light).stroke(colors.line);
     pdf.font("Helvetica-Bold").fontSize(8).fillColor(colors.green).text("CLIENTE", margin + 14, y + 13);
     pdf.font("Helvetica-Bold").fontSize(11).fillColor(colors.ink).text(`${client.nombre} ${client.apellido}`, margin + 14, y + 30, { width: 210 });
@@ -88,6 +89,11 @@ export async function GET(_request: Request, { params }: RouteContext) {
     const detailX = margin + 270;
     pdf.font("Helvetica-Bold").fontSize(8).fillColor(colors.green).text("FECHA DEL PRESUPUESTO", detailX, y + 13);
     pdf.font("Helvetica").fontSize(10).fillColor(colors.ink).text(formatDate, detailX, y + 31);
+    pdf.font("Helvetica").fontSize(8).fillColor(colors.muted).text(`Estado: ${statusLabels[budget.estado ?? "borrador"]}`, detailX, y + 49);
+    if (budget.vigente_hasta) {
+      pdf.font("Helvetica").fontSize(8).fillColor(colors.muted)
+        .text(`Vigente hasta: ${dateFormatter.format(new Date(`${budget.vigente_hasta}T00:00:00.000Z`))}`, detailX, y + 64, { width: contentWidth - 284 });
+    }
     y += clientCardHeight + 22;
     y = drawTableHeader(y);
 

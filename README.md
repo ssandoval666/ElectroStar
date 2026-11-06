@@ -29,5 +29,10 @@ Abrí [http://localhost:3000](http://localhost:3000). El primer acceso local usa
 - `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/session`
 - `GET /api/menu`
 - `GET /api/users`, `POST /api/users`, `PATCH /api/users/:idusuario`, `DELETE /api/users/:idusuario` (solo perfil `Admin`)
+- `GET /api/work-orders`, `PATCH /api/work-orders/:id` (Admin gestiona órdenes; Operario consulta las asignadas y actualiza su avance)
+
+Los presupuestos admiten los estados `borrador`, `enviado`, `aceptado` y `rechazado`, con una fecha opcional de vigencia. Aceptar un presupuesto crea una orden de trabajo con sus productos como materiales. Las órdenes pueden programarse y asignarse a un usuario Operario; la sección Clientes reúne el historial de presupuestos y órdenes. Cada orden conserva el presupuesto de origen como referencia; un presupuesto aceptado no puede modificarse ni eliminarse.
+
+La carpeta de Google Drive también contiene `ordenes-trabajo.json` para la persistencia de órdenes de trabajo.
 
 Los registros de `usuarios.json` tienen `idusuario`, `usuario`, `password` (hash bcrypt) y `perfil` (`Admin` o `Operario`). Las respuestas de usuario nunca incluyen `password`.

@@ -1,13 +1,17 @@
 import { readJsonEntity } from "@/lib/drive-json-store";
-import type { BudgetProduct } from "@/lib/budgets";
+import type { BudgetProduct, BudgetStatus } from "@/lib/budgets";
 import type { ProductRecord } from "@/app/api/products/route";
 
 export type BudgetInput = {
   idclientes: string;
   descripcion: string;
   fecha: string;
+  estado?: BudgetStatus;
+  vigente_hasta?: string;
   productos: Array<{ idproducto: string; cantidad: number }>;
 };
+
+const budgetStatuses: BudgetStatus[] = ["borrador", "enviado", "aceptado", "rechazado"];
 
 export function parseBudget(payload: unknown): BudgetInput | null {
   if (!payload || typeof payload !== "object") return null;
@@ -16,12 +20,27 @@ export function parseBudget(payload: unknown): BudgetInput | null {
   const idclientes = typeof budget.idclientes === "string" ? budget.idclientes : "";
   const descripcion = typeof budget.descripcion === "string" ? budget.descripcion.trim() : "";
   const fecha = typeof budget.fecha === "string" ? budget.fecha : "";
+  const estado = budget.estado === undefined
+    ? undefined
+    : budgetStatuses.includes(budget.estado as BudgetStatus) ? budget.estado as BudgetStatus : null;
+  const vigente_hasta = budget.vigente_hasta === undefined
+    ? undefined
+    : typeof budget.vigente_hasta === "string" ? budget.vigente_hasta : null;
+  if (estado === null || vigente_hasta === null) return null;
+  const validUntilParts = vigente_hasta?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const validUntilDate = validUntilParts ? new Date(`${vigente_hasta}T00:00:00.000Z`) : null;
+  const validUntilIsValid = !vigente_hasta || (
+    validUntilDate !== null &&
+    !Number.isNaN(validUntilDate.getTime()) &&
+    validUntilDate.toISOString().slice(0, 10) === vigente_hasta &&
+    vigente_hasta >= fecha
+  );
   const productos = budget.productos;
   const dateParts = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const parsedDate = dateParts ? new Date(`${fecha}T00:00:00.000Z`) : null;
   const validDate = parsedDate !== null && !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === fecha;
 
-  if (!idclientes || !descripcion || descripcion.length > 500 || !validDate || !Array.isArray(productos) || productos.length === 0 || productos.length > 100) return null;
+  if (!idclientes || !descripcion || descripcion.length > 500 || !validDate || !validUntilIsValid || !Array.isArray(productos) || productos.length === 0 || productos.length > 100) return null;
 
   const normalizedProducts = productos.map((item) => {
     if (!item || typeof item !== "object") return null;
@@ -32,7 +51,7 @@ export function parseBudget(payload: unknown): BudgetInput | null {
   });
 
   if (normalizedProducts.some((item) => item === null)) return null;
-  return { idclientes, descripcion, fecha, productos: normalizedProducts as BudgetInput["productos"] };
+  return { idclientes, descripcion, fecha, estado, vigente_hasta, productos: normalizedProducts as BudgetInput["productos"] };
 }
 
 export async function buildBudgetProducts(input: BudgetInput): Promise<BudgetProduct[] | null> {

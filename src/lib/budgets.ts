@@ -13,6 +13,8 @@ export type BudgetProduct = {
   valor_total: number;
 };
 
+export type BudgetStatus = "borrador" | "enviado" | "aceptado" | "rechazado";
+
 export type BudgetRecord = {
   idpresupuesto: string;
   idclientes: string;
@@ -20,6 +22,8 @@ export type BudgetRecord = {
   fecha: string;
   productos: BudgetProduct[];
   total: number;
+  estado?: BudgetStatus;
+  vigente_hasta?: string;
   fecha_modificacion: string;
   usuario_modificacion: string;
 };

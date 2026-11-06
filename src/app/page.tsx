@@ -33,6 +33,8 @@ import ProductsAdmin from "@/app/products-admin";
 import UsersAdmin from "@/app/users-admin";
 import BudgetsAdmin from "@/app/budgets-admin";
 import Calendar from "@/app/calendar";
+import ClientsHistoryAdmin from "@/app/clients-history-admin";
+import WorkOrdersAdmin from "@/app/work-orders-admin";
 import type { CalendarEntry } from "@/lib/calendar";
 
 type MenuItem = {
@@ -58,6 +60,7 @@ const iconByName: Record<string, LucideIcon> = {
   profile: BadgeCheck,
   settings: Settings2,
   products: Package,
+  briefcase: BriefcaseBusiness,
 };
 const SESSION_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -376,7 +379,7 @@ export default function Home() {
         </header>
 
         <div className="dashboard-content">
-          {activeItem === "users" && user.perfil === "Admin" ? <UsersAdmin /> : activeItem === "products" && user.perfil === "Admin" ? <ProductsAdmin /> : activeItem === "budgets" && user.perfil === "Admin" ? <BudgetsAdmin /> : activeItem === "calendar" ? <Calendar /> : (
+          {activeItem === "users" && user.perfil === "Admin" ? <UsersAdmin /> : activeItem === "products" && user.perfil === "Admin" ? <ProductsAdmin /> : activeItem === "budgets" && user.perfil === "Admin" ? <BudgetsAdmin /> : activeItem === "clients" && user.perfil === "Admin" ? <ClientsHistoryAdmin /> : activeItem === "work-orders" ? <WorkOrdersAdmin isAdmin={user.perfil === "Admin"} /> : activeItem === "calendar" ? <Calendar /> : (
             <>
           <div className="page-intro">
             <div>

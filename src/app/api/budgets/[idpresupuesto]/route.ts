@@ -2,6 +2,7 @@ import { getAdminSessionUser } from "@/lib/session";
 import { readJsonEntity, writeJsonEntity } from "@/lib/drive-json-store";
 import type { BudgetRecord } from "@/lib/budgets";
 import { createBudgetUpdate } from "@/lib/budgets-api";
+import { ensureWorkOrderForBudget } from "@/lib/work-orders";
 
 type RouteContext = { params: Promise<{ idpresupuesto: string }> };
 
@@ -30,6 +31,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const budgets = await readJsonEntity<BudgetRecord[]>("presupuestos.json", async () => []);
     const index = budgets.findIndex((budget) => budget.idpresupuesto === idpresupuesto);
     if (index < 0) return Response.json({ message: "Presupuesto no encontrado." }, { status: 404 });
+    if (budgets[index].estado === "aceptado") {
+      return Response.json({ message: "Un presupuesto aceptado no se puede modificar; creá uno nuevo para una revisión." }, { status: 409 });
+    }
 
     const budget: BudgetRecord = {
       ...budgets[index],
@@ -38,11 +42,16 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       fecha: input.fecha,
       productos,
       total: Math.round(productos.reduce((sum, item) => sum + item.valor_total, 0) * 100) / 100,
+      estado: input.estado ?? budgets[index].estado ?? "borrador",
+      ...(input.vigente_hasta !== undefined
+        ? input.vigente_hasta ? { vigente_hasta: input.vigente_hasta } : {}
+        : budgets[index].vigente_hasta ? { vigente_hasta: budgets[index].vigente_hasta } : {}),
       fecha_modificacion: new Date().toISOString(),
       usuario_modificacion: admin.idusuario,
     };
     budgets[index] = budget;
     await writeJsonEntity("presupuestos.json", budgets);
+    if (budget.estado === "aceptado") await ensureWorkOrderForBudget(budget, admin.idusuario);
     return Response.json({ budget });
   } catch (error) {
     console.error("Budget update error:", error);
@@ -57,6 +66,10 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
   try {
     const { idpresupuesto } = await params;
     const budgets = await readJsonEntity<BudgetRecord[]>("presupuestos.json", async () => []);
+    const workOrders = await readJsonEntity<{ idpresupuesto: string }[]>("ordenes-trabajo.json", async () => []);
+    if (workOrders.some((workOrder) => workOrder.idpresupuesto === idpresupuesto)) {
+      return Response.json({ message: "No se puede eliminar un presupuesto con una orden de trabajo asociada." }, { status: 409 });
+    }
     const remaining = budgets.filter((budget) => budget.idpresupuesto !== idpresupuesto);
     if (remaining.length === budgets.length) return Response.json({ message: "Presupuesto no encontrado." }, { status: 404 });
     await writeJsonEntity("presupuestos.json", remaining);

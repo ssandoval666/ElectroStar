@@ -2,7 +2,7 @@
 
 import { Download, Eye, FileDown, LoaderCircle, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
+import type { BudgetRecord, BudgetStatus, ClientRecord } from "@/lib/budgets";
 
 type Product = {
   idproducto: string;
@@ -21,9 +21,17 @@ type BudgetForm = {
   telefono: string;
   descripcion: string;
   fecha: string;
+  estado: BudgetStatus;
+  vigente_hasta: string;
   productos: BudgetLineInput[];
 };
 
+const budgetStatusLabels: Record<BudgetStatus, string> = {
+  borrador: "Borrador",
+  enviado: "Enviado",
+  aceptado: "Aceptado",
+  rechazado: "Rechazado",
+};
 const emptyForm = (): BudgetForm => ({
   idclientes: "",
   nombre: "",
@@ -31,6 +39,8 @@ const emptyForm = (): BudgetForm => ({
   telefono: "",
   descripcion: "",
   fecha: new Date().toISOString().slice(0, 10),
+  estado: "borrador",
+  vigente_hasta: new Date(Date.now() + 15 * 86_400_000).toISOString().slice(0, 10),
   productos: [],
 });
 
@@ -133,6 +143,8 @@ export default function BudgetsAdmin() {
       telefono: client?.telefono ?? "",
       descripcion: budget.descripcion,
       fecha: budget.fecha,
+      estado: budget.estado ?? "borrador",
+      vigente_hasta: budget.vigente_hasta ?? "",
       productos: budget.productos.map((item) => ({ idproducto: item.idproducto, cantidad: item.cantidad })),
     });
     setContactMode("existing");
@@ -182,6 +194,8 @@ export default function BudgetsAdmin() {
           idclientes,
           descripcion: form.descripcion,
           fecha: form.fecha,
+          estado: form.estado,
+          vigente_hasta: form.vigente_hasta,
           productos: form.productos,
         }),
       });
@@ -191,7 +205,13 @@ export default function BudgetsAdmin() {
       await loadData();
       setFormOpen(false);
       setEditingBudget(null);
-      setNotice(editingBudget ? "Presupuesto actualizado." : "Presupuesto creado.");
+      setNotice(editingBudget
+        ? form.estado === "aceptado" && editingBudget.estado !== "aceptado"
+          ? "Presupuesto aceptado y orden de trabajo creada."
+          : "Presupuesto actualizado."
+        : form.estado === "aceptado"
+          ? "Presupuesto creado y orden de trabajo creada."
+          : "Presupuesto creado.");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "No se pudo guardar el presupuesto.");
     } finally {
@@ -282,25 +302,28 @@ export default function BudgetsAdmin() {
 
       <div aria-busy={loading} className="users-table-scroll">
         <table className="users-table budgets-table">
-          <thead><tr><th>Presupuesto</th><th>Cliente</th><th>Fecha</th><th>Total</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
+          <thead><tr><th>Presupuesto</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
           <tbody>
-            {loading ? <tr><td className="users-empty" colSpan={5}><span className="table-loading" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={17} /> Cargando presupuestos...</span></td></tr> : visibleBudgets.length ? visibleBudgets.map((budget) => {
+            {loading ?             <tr><td className="users-empty" colSpan={6}><span className="table-loading" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={17} /> Cargando presupuestos...</span></td></tr> : visibleBudgets.length ? visibleBudgets.map((budget) => {
               const client = clients.find((item) => item.idclientes === budget.idclientes);
-              return (
+                const status = budget.estado ?? "borrador";
+                const isExpired = Boolean(budget.vigente_hasta && budget.vigente_hasta < new Date().toISOString().slice(0, 10) && (status === "borrador" || status === "enviado"));
+                return (
                 <tr key={budget.idpresupuesto}>
                   <td><strong className="budget-description">{budget.descripcion}</strong><small className="budget-lines-count">{budget.productos.length} {budget.productos.length === 1 ? "producto" : "productos"}</small></td>
                   <td>{client ? `${client.nombre} ${client.apellido}` : "Cliente no disponible"}<small className="budget-client-phone">{client?.telefono ?? ""}</small></td>
                   <td>{dateFormatter.format(new Date(`${budget.fecha}T00:00:00Z`))}</td>
                   <td className="product-value">{currencyFormatter.format(budget.total)}</td>
+                  <td><span className={`budget-status budget-status-${isExpired ? "vencido" : status}`}>{isExpired ? "Vencido" : budgetStatusLabels[status]}</span></td>
                   <td><div className="users-row-actions">
                     <button aria-label={`Ver ${budget.descripcion}`} className="users-icon-button" onClick={() => setViewingBudget(budget)} title="Ver presupuesto" type="button"><Eye size={15} /></button>
                     <button aria-label={`Exportar ${budget.descripcion} a PDF`} className="users-icon-button budget-export-icon" disabled={exportingId === budget.idpresupuesto} onClick={() => void exportBudget(budget)} title="Exportar a PDF" type="button">{exportingId === budget.idpresupuesto ? <LoaderCircle aria-hidden="true" className="loading-spinner" size={15} /> : <FileDown size={15} />}</button>
-                    <button aria-label={`Editar ${budget.descripcion}`} className="users-icon-button" onClick={() => startEdit(budget)} title="Editar presupuesto" type="button"><Pencil size={15} /></button>
+                    <button aria-label={`Editar ${budget.descripcion}`} className="users-icon-button" disabled={budget.estado === "aceptado"} onClick={() => startEdit(budget)} title={budget.estado === "aceptado" ? "Los presupuestos aceptados no se pueden modificar" : "Editar presupuesto"} type="button"><Pencil size={15} /></button>
                     <button aria-label={`Eliminar ${budget.descripcion}`} className="users-icon-button users-delete-button" onClick={() => { setError(""); setPendingDelete(budget); }} title="Eliminar presupuesto" type="button"><Trash2 size={15} /></button>
                   </div></td>
                 </tr>
               );
-            }) : <tr><td className="users-empty" colSpan={5}>{query ? "No hay presupuestos que coincidan con la búsqueda." : "Todavía no hay presupuestos."}</td></tr>}
+            }) : <tr><td className="users-empty" colSpan={6}>{query ? "No hay presupuestos que coincidan con la búsqueda." : "Todavía no hay presupuestos."}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -338,6 +361,10 @@ export default function BudgetsAdmin() {
                 <div className="budget-meta-fields">
                   <label className="budget-field">Descripción<input maxLength={500} onChange={(event) => setForm((current) => ({ ...current, descripcion: event.target.value }))} required value={form.descripcion} /></label>
                   <label className="budget-field">Fecha<input onChange={(event) => setForm((current) => ({ ...current, fecha: event.target.value }))} required type="date" value={form.fecha} /></label>
+                  <label className="budget-field">Estado<select onChange={(event) => setForm((current) => ({ ...current, estado: event.target.value as BudgetStatus }))} value={form.estado}>
+                    {Object.entries(budgetStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select></label>
+                  <label className="budget-field">Vigente hasta<input min={form.fecha} onChange={(event) => setForm((current) => ({ ...current, vigente_hasta: event.target.value }))} type="date" value={form.vigente_hasta} /></label>
                 </div>
               </section>
 
@@ -397,6 +424,7 @@ export default function BudgetsAdmin() {
                 <div><span>CLIENTE</span><strong>{client ? `${client.nombre} ${client.apellido}` : "Cliente no disponible"}</strong><small>{client?.telefono ?? ""}</small></div>
                 <div><span>FECHA DEL PRESUPUESTO</span><strong>{dateFormatter.format(new Date(`${viewingBudget.fecha}T00:00:00Z`))}</strong><small>N° {viewingBudget.idpresupuesto.slice(0, 8).toUpperCase()}</small></div>
               </div>
+              <p className="budget-view-status">Estado: <strong>{budgetStatusLabels[viewingBudget.estado ?? "borrador"]}</strong>{viewingBudget.vigente_hasta && <> · Vigente hasta {dateFormatter.format(new Date(`${viewingBudget.vigente_hasta}T00:00:00Z`))}</>}</p>
               <div className="budget-view-table-scroll"><table className="budget-view-table">
                 <thead><tr><th>Producto / servicio</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th></tr></thead>
                 <tbody>{viewingBudget.productos.map((item, index) => <tr key={`${item.idproducto}-${index}`}>

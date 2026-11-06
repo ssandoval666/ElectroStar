@@ -3,6 +3,7 @@ import { getAdminSessionUser } from "@/lib/session";
 import { readJsonEntity, writeJsonEntity } from "@/lib/drive-json-store";
 import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
 import { buildBudgetProducts, parseBudget } from "@/lib/budgets-api";
+import { ensureWorkOrderForBudget } from "@/lib/work-orders";
 
 export async function GET() {
   const admin = await getAdminSessionUser();
@@ -47,10 +48,13 @@ export async function POST(request: Request) {
       fecha: input.fecha,
       productos,
       total: Math.round(productos.reduce((sum, item) => sum + item.valor_total, 0) * 100) / 100,
+      estado: input.estado ?? "borrador",
+      ...(input.vigente_hasta ? { vigente_hasta: input.vigente_hasta } : {}),
       fecha_modificacion: new Date().toISOString(),
       usuario_modificacion: admin.idusuario,
     };
     await writeJsonEntity("presupuestos.json", [...items, budget]);
+    if (budget.estado === "aceptado") await ensureWorkOrderForBudget(budget, admin.idusuario);
     return Response.json({ budget }, { status: 201 });
   } catch (error) {
     console.error("Budget create error:", error);
