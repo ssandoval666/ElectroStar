@@ -232,6 +232,7 @@ export default function ProductsAdmin() {
           description="Completá la descripción y el valor del producto o servicio."
           onClose={closeForm}
           title={editingId ? "Editar producto" : "Nuevo producto"}
+          variant={error ? "error" : "info"}
         >
           <form className="product-editor" onSubmit={submitForm}>
             <div className="product-editor-fields">
@@ -254,7 +255,12 @@ export default function ProductsAdmin() {
       )}
 
       {pendingDelete && (
-        <ProductModal description="Antes de eliminarlo, verificamos que no esté utilizado." onClose={closeDeleteModal} title="Eliminar producto">
+        <ProductModal
+          description="Antes de eliminarlo, verificamos que no esté utilizado."
+          onClose={closeDeleteModal}
+          title="Eliminar producto"
+          variant={error || (productReferences && (productReferences.budgets.length > 0 || productReferences.workOrders.length > 0)) ? "error" : "warning"}
+        >
           <div className="delete-confirmation">
             <p>¿Querés eliminar <strong>{pendingDelete.descripcion}</strong>?</p>
             {checkingReferences && <p className="product-reference-loading" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={14} /> Consultando presupuestos y órdenes...</p>}
@@ -313,11 +319,13 @@ function ProductModal({
   description,
   onClose,
   title,
+  variant = "info",
 }: {
   children: ReactNode;
   description: string;
   onClose: () => void;
   title: string;
+  variant?: "info" | "warning" | "error" | "success";
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -357,7 +365,7 @@ function ProductModal({
   return (
     <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div aria-labelledby="products-modal-title" aria-modal="true" className="users-modal" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); onClose(); } }} ref={dialogRef} role="dialog" tabIndex={-1}>
-        <header className="users-modal-heading">
+        <header className={`users-modal-heading modal-heading-${variant}`}>
           <div><h2 id="products-modal-title">{title}</h2><p>{description}</p></div>
           <button aria-label="Cerrar modal" className="users-icon-button" onClick={onClose} type="button"><X size={17} /></button>
         </header>

@@ -185,7 +185,7 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
       </div>
       {selected && form && <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) { setSelected(null); setForm(null); } }}>
         <section aria-labelledby="work-order-title" aria-modal="true" className="users-modal work-order-modal" role="dialog">
-          <header className="users-modal-heading"><div><span className="eyebrow">ORDEN DE TRABAJO</span><h2 id="work-order-title">{selected.descripcion}</h2><p>{selected.cliente ? `${selected.cliente.nombre} ${selected.cliente.apellido} · ${selected.cliente.telefono}` : "Cliente no disponible"}</p></div><button aria-label="Cerrar" className="users-icon-button" disabled={saving} onClick={() => { setSelected(null); setForm(null); }} type="button"><X size={18} /></button></header>
+          <header className={`users-modal-heading modal-heading-${error ? "error" : "info"}`}><div><span className="eyebrow">ORDEN DE TRABAJO</span><h2 id="work-order-title">{selected.descripcion}</h2><p>{selected.cliente ? `${selected.cliente.nombre} ${selected.cliente.apellido} · ${selected.cliente.telefono}` : "Cliente no disponible"}</p></div><button aria-label="Cerrar" className="users-icon-button" disabled={saving} onClick={() => { setSelected(null); setForm(null); }} type="button"><X size={18} /></button></header>
           <form className="work-order-editor" onSubmit={saveWorkOrder}>
             <div className="work-order-editor-fields">
               <label className="budget-field">Fecha programada<input onChange={(event) => setForm({ ...form, fecha_programada: event.target.value })} type="date" value={form.fecha_programada} /></label>

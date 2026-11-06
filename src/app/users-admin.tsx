@@ -161,6 +161,7 @@ export default function UsersAdmin() {
           description="Completá los datos de acceso."
           onClose={closeForm}
           title={editingId ? "Editar usuario" : "Nuevo usuario"}
+          variant={error ? "error" : "info"}
         >
           <form className="user-editor" onSubmit={submitForm}>
             <div className="user-editor-fields">
@@ -190,7 +191,7 @@ export default function UsersAdmin() {
       )}
 
       {pendingDelete && (
-        <Modal description="Esta acción no se puede deshacer." onClose={closeDeleteModal} title="Eliminar usuario">
+        <Modal description="Esta acción no se puede deshacer." onClose={closeDeleteModal} title="Eliminar usuario" variant={error ? "error" : "warning"}>
           <div className="delete-confirmation">
             <p>¿Querés eliminar la cuenta <strong>{pendingDelete.usuario}</strong>?</p>
             {error && <p className="users-message users-message-error" role="alert">{error}</p>}
@@ -243,11 +244,13 @@ function Modal({
   description,
   onClose,
   title,
+  variant = "info",
 }: {
   children: ReactNode;
   description: string;
   onClose: () => void;
   title: string;
+  variant?: "info" | "warning" | "error" | "success";
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -310,7 +313,7 @@ function Modal({
         role="dialog"
         tabIndex={-1}
       >
-        <header className="users-modal-heading">
+        <header className={`users-modal-heading modal-heading-${variant}`}>
           <div><h2 id="users-modal-title">{title}</h2><p>{description}</p></div>
           <button aria-label="Cerrar modal" className="users-icon-button" onClick={onClose} type="button"><X size={17} /></button>
         </header>

@@ -491,7 +491,7 @@ export default function Home() {
           role="alertdialog"
           tabIndex={-1}
         >
-          <header className="users-modal-heading">
+          <header className="users-modal-heading modal-heading-warning">
             <div><h2 id="logout-confirmation-title">¿Cerrar sesión?</h2><p id="logout-confirmation-description">Vas a salir de tu cuenta de ElectroStar.</p></div>
           </header>
           <div className="delete-confirmation">

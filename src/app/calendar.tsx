@@ -220,7 +220,7 @@ export default function Calendar() {
       {selectedDate && !editingEntry && selectedHour === null && (
         <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedDate(null); }}>
           <section aria-labelledby="calendar-day-title" aria-modal="true" className="users-modal calendar-day-modal" role="dialog">
-            <div className="users-modal-heading">
+            <div className="users-modal-heading modal-heading-warning">
               <div><span className="eyebrow">AGENDA DEL DÍA</span><h2 id="calendar-day-title">{formatLongDate(selectedDate)}</h2><p>Elegí una actividad para editarla o una hora para crear una nueva.</p></div>
               <button aria-label="Cerrar" className="users-icon-button" onClick={() => setSelectedDate(null)} type="button"><X size={18} /></button>
             </div>
@@ -249,7 +249,7 @@ export default function Calendar() {
       {(editingEntry || selectedHour !== null) && (
         <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) { setSelectedHour(null); setEditingEntry(null); } }}>
           <section aria-labelledby="calendar-editor-title" aria-modal="true" className="users-modal calendar-editor-modal" role="dialog">
-            <div className="users-modal-heading">
+            <div className={`users-modal-heading modal-heading-${error && !deleteConfirmation ? "error" : "info"}`}>
               <div><span className="eyebrow">{editingEntry ? "EDITAR ACTIVIDAD" : "NUEVA ACTIVIDAD"}</span><h2 id="calendar-editor-title">{editingEntry ? "Editar actividad" : "Programar actividad"}</h2><p>{formatLongDate(formDate)}</p></div>
               <button aria-label="Volver al día" className="users-icon-button" disabled={saving} onClick={() => { setSelectedHour(null); setEditingEntry(null); }} type="button"><X size={18} /></button>
             </div>
@@ -277,7 +277,7 @@ export default function Calendar() {
       {deleteConfirmation && editingEntry && (
         <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setDeleteConfirmation(false); }}>
           <section aria-labelledby="calendar-delete-title" aria-modal="true" className="users-modal calendar-delete-modal" role="alertdialog">
-            <div className="users-modal-heading">
+            <div className={`users-modal-heading modal-heading-${error ? "error" : "warning"}`}>
               <div><span className="eyebrow">CONFIRMAR ELIMINACIÓN</span><h2 id="calendar-delete-title">¿Eliminar esta actividad?</h2></div>
               <button aria-label="Cerrar confirmación" className="users-icon-button" disabled={saving} onClick={() => setDeleteConfirmation(false)} type="button"><X size={18} /></button>
             </div>

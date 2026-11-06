@@ -15,14 +15,20 @@ export async function getProductReferences(idproducto: string): Promise<ProductR
 
   return {
     budgets: budgets
-      .filter((budget) => budget.productos.some((product) => product.idproducto === idproducto))
+      .filter((budget) =>
+        Array.isArray(budget.productos) &&
+        budget.productos.some((product) => product?.idproducto === idproducto)
+      )
       .map((budget) => ({
         id: budget.idpresupuesto,
         descripcion: budget.descripcion,
         fecha: budget.fecha,
       })),
     workOrders: workOrders
-      .filter((workOrder) => workOrder.materiales.some((material) => material.idproducto === idproducto))
+      .filter((workOrder) =>
+        Array.isArray(workOrder.materiales) &&
+        workOrder.materiales.some((material) => material?.idproducto === idproducto)
+      )
       .map((workOrder) => ({
         id: workOrder.id,
         descripcion: workOrder.descripcion,

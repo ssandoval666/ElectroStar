@@ -331,7 +331,7 @@ export default function BudgetsAdmin() {
       {formOpen && (
         <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeForm(); }}>
           <section aria-labelledby="budget-editor-title" aria-modal="true" className="users-modal budget-modal" role="dialog">
-            <header className="users-modal-heading">
+            <header className={`users-modal-heading modal-heading-${error ? "error" : "info"}`}>
               <div><span className="eyebrow">{editingBudget ? "MODIFICACIÓN" : "ALTA"}</span><h2 id="budget-editor-title">{editingBudget ? "Editar presupuesto" : "Nuevo presupuesto"}</h2><p>Datos del cliente, vigencia y detalle del presupuesto.</p></div>
               <button aria-label="Cerrar modal" className="users-icon-button" disabled={saving} onClick={closeForm} type="button"><X size={18} /></button>
             </header>
@@ -405,7 +405,7 @@ export default function BudgetsAdmin() {
 
       {pendingDelete && <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) setPendingDelete(null); }}>
         <section aria-labelledby="budget-delete-title" aria-modal="true" className="users-modal" role="alertdialog">
-          <header className="users-modal-heading"><div><h2 id="budget-delete-title">Eliminar presupuesto</h2><p>Esta acción no se puede deshacer.</p></div><button aria-label="Cerrar modal" className="users-icon-button" disabled={deleting} onClick={() => setPendingDelete(null)} type="button"><X size={17} /></button></header>
+          <header className={`users-modal-heading modal-heading-${error ? "error" : "warning"}`}><div><h2 id="budget-delete-title">Eliminar presupuesto</h2><p>Esta acción no se puede deshacer.</p></div><button aria-label="Cerrar modal" className="users-icon-button" disabled={deleting} onClick={() => setPendingDelete(null)} type="button"><X size={17} /></button></header>
           <div className="delete-confirmation"><p>¿Querés eliminar <strong>{pendingDelete.descripcion}</strong>?</p>{error && <p className="users-message users-message-error" role="alert">{error}</p>}<div className="user-editor-actions"><button className="users-cancel-button" disabled={deleting} onClick={() => setPendingDelete(null)} type="button">Cancelar</button><button className="users-confirm-delete" disabled={deleting} onClick={() => void confirmDelete()} type="button">{deleting && <LoaderCircle aria-hidden="true" className="loading-spinner" size={14} />}{deleting ? "Eliminando..." : "Eliminar presupuesto"}</button></div></div>
         </section>
       </div>}
@@ -414,7 +414,7 @@ export default function BudgetsAdmin() {
         const client = clients.find((item) => item.idclientes === viewingBudget.idclientes);
         return <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setViewingBudget(null); }}>
           <section aria-labelledby="budget-view-title" aria-modal="true" className="users-modal budget-view-modal" ref={budgetViewDialog} role="dialog" tabIndex={-1}>
-            <header className="users-modal-heading">
+            <header className="users-modal-heading modal-heading-warning">
               <div><span className="eyebrow">VISTA PREVIA PARA CLIENTE</span><h2 id="budget-view-title">Presupuesto</h2><p>{viewingBudget.descripcion}</p></div>
               <button aria-label="Cerrar vista" className="users-icon-button" onClick={() => setViewingBudget(null)} type="button"><X size={18} /></button>
             </header>
