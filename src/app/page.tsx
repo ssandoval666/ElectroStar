@@ -152,6 +152,10 @@ export default function Home() {
     setMenuItems([]);
     setUsername("");
     setPassword("");
+    setLoginFeedback("idle");
+    setError("");
+    setLoading(false);
+    setLogoutConfirmationOpen(false);
     setActiveItem("resumen");
     setActiveLabel("Resumen");
     setMobileMenuOpen(false);
