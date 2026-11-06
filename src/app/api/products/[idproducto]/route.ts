@@ -1,6 +1,7 @@
 import { getAdminSessionUser } from "@/lib/session";
 import { readJsonEntity, writeJsonEntity } from "@/lib/drive-json-store";
 import type { ProductRecord } from "@/app/api/products/route";
+import { getProductReferences } from "@/lib/product-references";
 
 type RouteContext = { params: Promise<{ idproducto: string }> };
 type ProductPayload = { descripcion?: unknown; Valor?: unknown };
@@ -53,6 +54,25 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 }
 
+export async function GET(_request: Request, { params }: RouteContext) {
+  const admin = await getAdminSessionUser();
+  if (!admin) return Response.json({ message: "No autorizado." }, { status: 403 });
+
+  const { idproducto } = await params;
+  try {
+    const products = await readJsonEntity<ProductRecord[]>("productos.json", async () => []);
+    if (!products.some((item) => item.idproducto === idproducto)) {
+      return Response.json({ message: "Producto no encontrado." }, { status: 404 });
+    }
+
+    const references = await getProductReferences(idproducto);
+    return Response.json({ references });
+  } catch (error) {
+    console.error("Product references read error:", error);
+    return Response.json({ message: "No se pudieron consultar las referencias del producto." }, { status: 503 });
+  }
+}
+
 export async function DELETE(_request: Request, { params }: RouteContext) {
   const admin = await getAdminSessionUser();
   if (!admin) return Response.json({ message: "No autorizado." }, { status: 403 });
@@ -62,6 +82,14 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     const items = await readJsonEntity<ProductRecord[]>("productos.json", async () => []);
     if (!items.some((item) => item.idproducto === idproducto)) {
       return Response.json({ message: "Producto no encontrado." }, { status: 404 });
+    }
+
+    const references = await getProductReferences(idproducto);
+    if (references.budgets.length || references.workOrders.length) {
+      return Response.json({
+        message: "No se puede eliminar el producto porque está utilizado en presupuestos u órdenes de trabajo.",
+        references,
+      }, { status: 409 });
     }
 
     await writeJsonEntity("productos.json", items.filter((item) => item.idproducto !== idproducto));

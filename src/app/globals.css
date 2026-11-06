@@ -242,7 +242,14 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .users-save-button:disabled { cursor: wait; opacity: .7; }
 .delete-confirmation { padding: 18px 21px 20px; }
 .delete-confirmation > p:first-child { margin: 0; color: #536157; font-size: 12px; line-height: 1.65; }
-.delete-confirmation > p:first-child strong { color: #263d2e; }
+
+.product-reference-loading { display: flex; align-items: center; gap: 7px; margin: 12px 0 0; color: #758079; font-size: 10px; }
+.product-references { max-height: 260px; overflow-y: auto; margin-top: 12px; padding: 11px 12px; border: 1px solid #efd6ce; border-radius: 3px; background: #fff8f5; color: #754c42; font-size: 10px; }
+.product-references > p { margin: 0 0 10px; color: #a8473b; font-weight: 650; }
+.product-references section + section { margin-top: 10px; padding-top: 9px; border-top: 1px solid #f0dfda; }
+.product-references section > strong { color: #5d443c; font-size: 9px; }
+.product-reference-list { display: grid; gap: 5px; margin: 6px 0 0; padding-left: 17px; }
+.product-reference-list li { line-height: 1.4; }
 .users-confirm-delete { min-height: 36px; padding: 0 13px; border: 0; border-radius: 3px; background: #a8473b; color: #fff; cursor: pointer; font-size: 10px; font-weight: 650; }
 .users-confirm-delete:hover { background: #88372e; }
 .users-confirm-delete:disabled { cursor: wait; opacity: .7; }

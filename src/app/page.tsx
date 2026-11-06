@@ -80,6 +80,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loginFeedback, setLoginFeedback] = useState<LoginFeedback>("idle");
+  const [logoutConfirmationOpen, setLogoutConfirmationOpen] = useState(false);
   const [calendarEntries, setCalendarEntries] = useState<CalendarEntry[]>([]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -390,7 +391,7 @@ export default function Home() {
         </nav>
 
         <div className="sidebar-bottom">
-          <button className="nav-item logout-item" onClick={logout} title="Cerrar sesión" type="button"><LogOut size={18} />{!collapsed && <span>Cerrar sesión</span>}</button>
+          <button className="nav-item logout-item" onClick={() => setLogoutConfirmationOpen(true)} title="Cerrar sesión" type="button"><LogOut size={18} />{!collapsed && <span>Cerrar sesión</span>}</button>
           {!collapsed && <div className="sidebar-footer-mark"><span>ENERGÍA QUE NOS UNE</span><span>v1.0.0 · 2026</span></div>}
         </div>
       </aside>
@@ -478,6 +479,29 @@ export default function Home() {
           )}
         </div>
       </section>
+      {logoutConfirmationOpen && <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setLogoutConfirmationOpen(false); }}>
+        <section
+          aria-describedby="logout-confirmation-description"
+          aria-labelledby="logout-confirmation-title"
+          aria-modal="true"
+          className="users-modal"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setLogoutConfirmationOpen(false);
+          }}
+          role="alertdialog"
+          tabIndex={-1}
+        >
+          <header className="users-modal-heading">
+            <div><h2 id="logout-confirmation-title">¿Cerrar sesión?</h2><p id="logout-confirmation-description">Vas a salir de tu cuenta de ElectroStar.</p></div>
+          </header>
+          <div className="delete-confirmation">
+            <div className="user-editor-actions">
+              <button autoFocus className="users-cancel-button" onClick={() => setLogoutConfirmationOpen(false)} type="button">Seguir en el portal</button>
+              <button className="users-confirm-delete" onClick={logout} type="button">Cerrar sesión</button>
+            </div>
+          </div>
+        </section>
+      </div>}
     </main>
   );
 }

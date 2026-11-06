@@ -16,6 +16,11 @@ type ProductForm = {
   Valor: string;
 };
 
+type ProductReferences = {
+  budgets: Array<{ id: string; descripcion: string; fecha: string }>;
+  workOrders: Array<{ id: string; descripcion: string; fecha_programada: string; estado: string }>;
+};
+
 const emptyForm: ProductForm = { descripcion: "", Valor: "" };
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -30,6 +35,8 @@ export default function ProductsAdmin() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
+  const [productReferences, setProductReferences] = useState<ProductReferences | null>(null);
+  const [checkingReferences, setCheckingReferences] = useState(false);
   const [importing, setImporting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,6 +44,7 @@ export default function ProductsAdmin() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const importFileInput = useRef<HTMLInputElement>(null);
+  const referenceRequestId = useRef(0);
 
   async function loadProducts() {
     setLoading(true);
@@ -94,8 +102,35 @@ export default function ProductsAdmin() {
     setForm(emptyForm);
   }, [saving]);
   const closeDeleteModal = useCallback(() => {
-    if (!deleting) setPendingDelete(null);
+    if (deleting) return;
+    referenceRequestId.current += 1;
+    setPendingDelete(null);
+    setProductReferences(null);
+    setCheckingReferences(false);
+    setError("");
   }, [deleting]);
+
+  async function openDeleteModal(product: Product) {
+    const requestId = ++referenceRequestId.current;
+    setPendingDelete(product);
+    setProductReferences(null);
+    setCheckingReferences(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/api/products/${product.idproducto}`);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message ?? "No se pudieron consultar las referencias.");
+      if (requestId === referenceRequestId.current) setProductReferences(result.references);
+    } catch (referenceError) {
+      if (requestId === referenceRequestId.current) {
+        setError(referenceError instanceof Error ? referenceError.message : "No se pudieron consultar las referencias.");
+      }
+    } finally {
+      if (requestId === referenceRequestId.current) setCheckingReferences(false);
+    }
+  }
 
   async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,9 +166,13 @@ export default function ProductsAdmin() {
     try {
       const response = await fetch(`/api/products/${pendingDelete.idproducto}`, { method: "DELETE" });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message ?? "No se pudo eliminar el producto.");
+      if (!response.ok) {
+        if (result.references) setProductReferences(result.references);
+        throw new Error(result.message ?? "No se pudo eliminar el producto.");
+      }
       setProducts((current) => current.filter((product) => product.idproducto !== pendingDelete.idproducto));
       setPendingDelete(null);
+      setProductReferences(null);
       setNotice("Producto eliminado.");
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "No se pudo eliminar el producto.");
@@ -215,13 +254,19 @@ export default function ProductsAdmin() {
       )}
 
       {pendingDelete && (
-        <ProductModal description="Esta acción no se puede deshacer." onClose={closeDeleteModal} title="Eliminar producto">
+        <ProductModal description="Antes de eliminarlo, verificamos que no esté utilizado." onClose={closeDeleteModal} title="Eliminar producto">
           <div className="delete-confirmation">
             <p>¿Querés eliminar <strong>{pendingDelete.descripcion}</strong>?</p>
+            {checkingReferences && <p className="product-reference-loading" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={14} /> Consultando presupuestos y órdenes...</p>}
+            {productReferences && (productReferences.budgets.length > 0 || productReferences.workOrders.length > 0) && <div className="product-references" role="status">
+              <p>No se puede eliminar porque este producto tiene referencias:</p>
+              {productReferences.budgets.length > 0 && <section><strong>Presupuestos ({productReferences.budgets.length})</strong><ul className="product-reference-list">{productReferences.budgets.map((budget) => <li key={budget.id}>{budget.descripcion} · {budget.fecha}</li>)}</ul></section>}
+              {productReferences.workOrders.length > 0 && <section><strong>Órdenes de trabajo ({productReferences.workOrders.length})</strong><ul className="product-reference-list">{productReferences.workOrders.map((workOrder) => <li key={workOrder.id}>{workOrder.descripcion}{workOrder.fecha_programada ? ` · ${workOrder.fecha_programada}` : ""}</li>)}</ul></section>}
+            </div>}
             {error && <p className="users-message users-message-error" role="alert">{error}</p>}
             <div className="user-editor-actions">
               <button className="users-cancel-button" disabled={deleting} onClick={closeDeleteModal} type="button">Cancelar</button>
-              <button className="users-confirm-delete" disabled={deleting} onClick={() => void confirmDelete()} type="button">{deleting && <LoaderCircle aria-hidden="true" className="loading-spinner" size={14} />}{deleting ? "Eliminando..." : "Eliminar producto"}</button>
+              <button className="users-confirm-delete" disabled={deleting || checkingReferences || !productReferences || productReferences.budgets.length > 0 || productReferences.workOrders.length > 0 || Boolean(error)} onClick={() => void confirmDelete()} type="button">{deleting && <LoaderCircle aria-hidden="true" className="loading-spinner" size={14} />}{deleting ? "Eliminando..." : "Eliminar producto"}</button>
             </div>
           </div>
         </ProductModal>
@@ -250,7 +295,7 @@ export default function ProductsAdmin() {
                 <td className="product-value">{currencyFormatter.format(product.Valor)}</td>
                 <td><div className="users-row-actions">
                   <button aria-label={`Editar ${product.descripcion}`} className="users-icon-button" onClick={() => startEdit(product)} title="Editar producto" type="button"><Pencil size={15} /></button>
-                  <button aria-label={`Eliminar ${product.descripcion}`} className="users-icon-button users-delete-button" onClick={() => { setError(""); setPendingDelete(product); }} title="Eliminar producto" type="button"><Trash2 size={15} /></button>
+                  <button aria-label={`Eliminar ${product.descripcion}`} className="users-icon-button users-delete-button" onClick={() => void openDeleteModal(product)} title="Eliminar producto" type="button"><Trash2 size={15} /></button>
                 </div></td>
               </tr>
             )) : (
