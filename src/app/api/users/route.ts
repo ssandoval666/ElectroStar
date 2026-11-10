@@ -59,6 +59,7 @@ export async function POST(request: Request) {
       usuario: username,
       password: await bcrypt.hash(password, 12),
       perfil: profile as UserProfile,
+      sessionVersion: 0,
     };
     await writeJsonEntity("usuarios.json", [...users, newUser]);
 

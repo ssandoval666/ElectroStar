@@ -9,9 +9,10 @@ export type StoredUser = {
   usuario: string;
   password: string;
   perfil: UserProfile;
+  sessionVersion?: number;
 };
 
-export type PublicUser = Omit<StoredUser, "password">;
+export type PublicUser = Omit<StoredUser, "password" | "sessionVersion">;
 
 export async function getUsers(): Promise<StoredUser[]> {
   // readJsonEntity busca el archivo; si existe, devuelve su contenido.

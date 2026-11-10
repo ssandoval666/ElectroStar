@@ -13,6 +13,7 @@ type SessionPayload = SessionUser & {
   iss: string;
   iat: number;
   exp: number;
+  sessionVersion: number;
 };
 
 function getSessionSecret() {
@@ -26,7 +27,7 @@ function sign(value: string) {
   return createHmac("sha256", getSessionSecret()).update(value).digest();
 }
 
-export function createSessionToken(user: SessionUser) {
+export function createSessionToken(user: SessionUser, sessionVersion: number) {
   const issuedAt = Math.floor(Date.now() / 1000);
   const payload: SessionPayload = {
     ...user,
@@ -34,6 +35,7 @@ export function createSessionToken(user: SessionUser) {
     iss: SESSION_ISSUER,
     iat: issuedAt,
     exp: issuedAt + SESSION_MAX_AGE_SECONDS,
+    sessionVersion,
   };
   const encodedHeader = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
   const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
@@ -41,7 +43,7 @@ export function createSessionToken(user: SessionUser) {
   return `${unsignedToken}.${sign(unsignedToken).toString("base64url")}`;
 }
 
-function verifySessionToken(token: string): { user: SessionUser; expiresAt: number } | null {
+function verifySessionToken(token: string): { user: SessionUser; expiresAt: number; sessionVersion: number } | null {
   if (token.length > 4096) return null;
   const [encodedHeader, encodedPayload, providedSignature, extraSegment] = token.split(".");
   if (!encodedHeader || !encodedPayload || !providedSignature || extraSegment) return null;
@@ -77,6 +79,8 @@ function verifySessionToken(token: string): { user: SessionUser; expiresAt: numb
       (payload.perfil !== "Admin" && payload.perfil !== "Operario") ||
       !Number.isInteger(payload.iat) ||
       !Number.isInteger(payload.exp) ||
+      !Number.isSafeInteger(payload.sessionVersion) ||
+      payload.sessionVersion < 0 ||
       payload.iat > now ||
       payload.exp <= now ||
       payload.exp <= payload.iat ||
@@ -86,6 +90,7 @@ function verifySessionToken(token: string): { user: SessionUser; expiresAt: numb
     return {
       user: { idusuario: payload.idusuario, usuario: payload.usuario, perfil: payload.perfil },
       expiresAt: payload.exp,
+      sessionVersion: payload.sessionVersion,
     };
   } catch {
     return null;
@@ -102,9 +107,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   return (await getVerifiedSession())?.user ?? null;
 }
 
-export async function setSessionCookie(user: SessionUser) {
+export async function setSessionCookie(user: SessionUser, sessionVersion: number) {
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(user), {
+  cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(user, sessionVersion), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -119,11 +124,13 @@ export async function getCurrentSessionUser(): Promise<SessionUser | null> {
 
   const storedUser = (await getUsers()).find((user) => user.idusuario === session.user.idusuario);
   if (!storedUser) return null;
+  const sessionVersion = storedUser.sessionVersion ?? 0;
+  if (session.sessionVersion !== sessionVersion) return null;
 
   const publicUser = toPublicUser(storedUser);
   const secondsUntilExpiry = session.expiresAt - Math.floor(Date.now() / 1000);
   if (secondsUntilExpiry <= SESSION_REFRESH_THRESHOLD_SECONDS) {
-    await setSessionCookie(publicUser);
+    await setSessionCookie(publicUser, sessionVersion);
   }
   return publicUser;
 }

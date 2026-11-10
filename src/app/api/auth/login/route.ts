@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     const publicUser = toPublicUser(user);
-    await setSessionCookie(publicUser);
+    await setSessionCookie(publicUser, user.sessionVersion ?? 0);
 
     return Response.json({ user: publicUser });
   } catch (error) {

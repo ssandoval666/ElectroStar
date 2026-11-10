@@ -59,6 +59,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       usuario: username,
       perfil: profile as UserProfile,
       password: await bcrypt.hash(password, 12),
+      sessionVersion: (currentUser.sessionVersion ?? 0) + 1,
     };
     users[index] = updatedUser;
     await writeJsonEntity("usuarios.json", users);
