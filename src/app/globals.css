@@ -145,11 +145,13 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .stat-topline { display: flex; align-items: center; justify-content: space-between; color: #8a978e; }
 .stat-topline > span { font-size: 8px; letter-spacing: .1em; font-weight: 750; }
 .stat-value { margin-top: 10px; color: #1e3f30; font-family: Georgia, serif; font-size: 31px; line-height: 1; font-weight: 400; }
+.stat-value-alert { color: #a96551; }
 .stat-value small { margin-left: 4px; color: #78887d; font-family: var(--font-geist-sans), sans-serif; font-size: 9px; letter-spacing: .04em; font-weight: 700; }
 .stat-caption { margin-top: 5px; color: #56655b; font-size: 10px; }
 .stat-trend { display: flex; align-items: center; gap: 4px; margin-top: auto; padding-top: 11px; color: #8a948c; font-size: 9px; }
 .trend-positive { color: #4f885b; }
 .trend-waiting { color: #aa8950; }
+.trend-alert { color: #a96551; }
 .lower-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(270px, .85fr); gap: 15px; }
 .activity-panel, .quick-panel { min-width: 0; padding: 19px 20px 8px; border: 1px solid #e4e9e3; border-radius: 4px; background: #fff; }
 .quick-panel { padding-bottom: 13px; }

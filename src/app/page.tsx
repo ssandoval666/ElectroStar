@@ -2,7 +2,7 @@
 
 import {
   Activity,
-  ArrowDownRight,
+  AlertTriangle,
   ArrowUpRight,
   BadgeCheck,
   Bell,
@@ -36,6 +36,8 @@ import Calendar from "@/app/calendar";
 import ClientsHistoryAdmin from "@/app/clients-history-admin";
 import WorkOrdersAdmin from "@/app/work-orders-admin";
 import type { CalendarEntry } from "@/lib/calendar";
+import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
+import type { WorkOrderStatus, WorkOrderView } from "@/lib/work-orders";
 import MenusAdmin from "@/app/menus-admin";
 import type { MenuItem } from "@/lib/menu";
 
@@ -46,6 +48,40 @@ type LoginUser = {
 };
 
 type LoginFeedback = "idle" | "charging" | "success" | "short";
+type DashboardMetric = {
+  label: string;
+  value: string;
+  caption: string;
+  detail: string;
+  icon: LucideIcon;
+  alert?: boolean;
+};
+
+const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+const workOrderStatusLabels: Record<WorkOrderStatus, string> = {
+  pendiente: "Pendiente",
+  programada: "Programada",
+  en_curso: "En curso",
+  completada: "Completada",
+  cancelada: "Cancelada",
+};
+
+async function fetchDashboardItems<T>(endpoint: string): Promise<T[]> {
+  const response = await fetch(endpoint);
+  const result: unknown = await response.json();
+  if (!result || typeof result !== "object") {
+    throw new Error("El servicio devolvió una respuesta no válida.");
+  }
+
+  const body = result as { items?: unknown; message?: unknown };
+  if (!response.ok) {
+    throw new Error(typeof body.message === "string" ? body.message : "No se pudieron cargar los datos del resumen.");
+  }
+  if (!Array.isArray(body.items)) {
+    throw new Error("El servicio devolvió datos incompletos para el resumen.");
+  }
+  return body.items as T[];
+}
 
 const iconByName: Record<string, LucideIcon> = {
   home: House,
@@ -77,6 +113,16 @@ export default function Home() {
   const [loginFeedback, setLoginFeedback] = useState<LoginFeedback>("idle");
   const [logoutConfirmationOpen, setLogoutConfirmationOpen] = useState(false);
   const [calendarEntries, setCalendarEntries] = useState<CalendarEntry[]>([]);
+  const [dashboardWorkOrders, setDashboardWorkOrders] = useState<WorkOrderView[]>([]);
+  const [dashboardBudgets, setDashboardBudgets] = useState<BudgetRecord[]>([]);
+  const [dashboardClients, setDashboardClients] = useState<ClientRecord[]>([]);
+  const [dashboardError, setDashboardError] = useState("");
+  const [dashboardRefresh, setDashboardRefresh] = useState(0);
+  const [loadedDashboardKey, setLoadedDashboardKey] = useState("");
+  const dashboardKey = user && activeItem === "resumen"
+    ? `${user.idusuario}:${user.perfil}:${dashboardRefresh}`
+    : "";
+  const dashboardLoading = Boolean(dashboardKey && loadedDashboardKey !== dashboardKey);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -154,6 +200,12 @@ export default function Home() {
     setActiveItem("resumen");
     setActiveLabel("Resumen");
     setMobileMenuOpen(false);
+    setCalendarEntries([]);
+    setDashboardWorkOrders([]);
+    setDashboardBudgets([]);
+    setDashboardClients([]);
+    setDashboardError("");
+    setLoadedDashboardKey("");
   }, []);
 
   useEffect(() => {
@@ -234,19 +286,53 @@ export default function Home() {
   }, [user, logout]);
 
   useEffect(() => {
-    if (!user || activeItem !== "resumen") return;
+    const currentUser = user;
+    if (!currentUser || activeItem !== "resumen") return;
     let active = true;
+    const requestKey = `${currentUser.idusuario}:${currentUser.perfil}:${dashboardRefresh}`;
+    const userProfile = currentUser.perfil;
 
-    fetch("/api/calendar")
-      .then(async (response) => {
-        if (!response.ok) throw new Error("No se pudo cargar la agenda.");
-        return response.json() as Promise<{ items: CalendarEntry[] }>;
-      })
-      .then((result) => { if (active) setCalendarEntries(result.items); })
-      .catch(() => { if (active) setCalendarEntries([]); });
+    async function loadDashboard() {
+      try {
+        let workOrders: WorkOrderView[];
+        let entries: CalendarEntry[];
+        let budgets: BudgetRecord[] = [];
+        let clients: ClientRecord[] = [];
+        if (userProfile === "Admin") {
+          [workOrders, entries, budgets, clients] = await Promise.all([
+            fetchDashboardItems<WorkOrderView>("/api/work-orders"),
+            fetchDashboardItems<CalendarEntry>("/api/calendar"),
+            fetchDashboardItems<BudgetRecord>("/api/budgets"),
+            fetchDashboardItems<ClientRecord>("/api/clients"),
+          ]);
+        } else {
+          [workOrders, entries] = await Promise.all([
+            fetchDashboardItems<WorkOrderView>("/api/work-orders"),
+            fetchDashboardItems<CalendarEntry>("/api/calendar"),
+          ]);
+        }
+        if (!active) return;
+        setDashboardWorkOrders(workOrders);
+        setCalendarEntries(entries);
+        setDashboardBudgets(budgets);
+        setDashboardClients(clients);
+        setDashboardError("");
+        setLoadedDashboardKey(requestKey);
+      } catch (loadError) {
+        if (!active) return;
+        setDashboardWorkOrders([]);
+        setCalendarEntries([]);
+        setDashboardBudgets([]);
+        setDashboardClients([]);
+        setDashboardError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los datos del resumen.");
+        setLoadedDashboardKey(requestKey);
+      }
+    }
+
+    void loadDashboard();
 
     return () => { active = false; };
-  }, [user, activeItem]);
+  }, [user, activeItem, dashboardRefresh]);
 
   if (!user) {
     return (
@@ -402,7 +488,7 @@ export default function Home() {
             <div className="breadcrumb"><span>Mi espacio</span><ChevronRight size={14} /><strong>{activeLabel}</strong></div>
           </div>
           <div className="topbar-actions">
-            <span className="topbar-date">LUNES, 26 OCT 2026</span>
+            <span className="topbar-date">{new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "2-digit", month: "short", year: "numeric" }).format(new Date()).toLocaleUpperCase("es-AR")}</span>
             <button aria-label="Buscar" className="icon-button" type="button"><Search size={18} /></button>
             <button aria-label="Notificaciones" className="icon-button notification-button" type="button"><Bell size={18} /><span /></button>
             <div className="topbar-avatar">{user.usuario.slice(0, 1).toUpperCase()}</div>
@@ -412,61 +498,150 @@ export default function Home() {
         <div className="dashboard-content">
           {activeItem === "menu-management" && user.perfil === "Admin" ? <MenusAdmin onSaved={setMenuItems} /> : activeItem === "users" && user.perfil === "Admin" ? <UsersAdmin /> : activeItem === "products" && user.perfil === "Admin" ? <ProductsAdmin /> : activeItem === "budgets" && user.perfil === "Admin" ? <BudgetsAdmin /> : activeItem === "clients" && user.perfil === "Admin" ? <ClientsHistoryAdmin /> : activeItem === "work-orders" ? <WorkOrdersAdmin isAdmin={user.perfil === "Admin"} /> : activeItem === "calendar" ? <Calendar /> : (
             <>
-          <div className="page-intro">
-            <div>
-              <span className="eyebrow">LUNES · 26 DE OCTUBRE DE 2026</span>
-              <h1>{activeItem === "resumen" ? "Buen día," : activeLabel}</h1>
-              {activeItem === "resumen" && <h1 className="intro-name">{user.usuario}.</h1>}
-              <p>{activeItem === "resumen" ? "Todo lo que necesitás para seguir conectado a tu comunidad." : `Consultá y gestioná ${activeLabel.toLocaleLowerCase()} desde tu espacio de afiliado.`}</p>
-            </div>
-            <button className="outline-action" onClick={() => { setActiveItem("calendar"); setActiveLabel("Agenda"); }} type="button"><CalendarDays size={16} /><span>Ver calendario</span><ArrowUpRight size={15} /></button>
-          </div>
-
           {(() => {
             const now = new Date();
             const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+            const currentMonth = today.slice(0, 7);
+            const workOrders = dashboardLoading ? [] : dashboardWorkOrders;
+            const budgets = dashboardLoading ? [] : dashboardBudgets;
+            const clients = dashboardLoading ? [] : dashboardClients;
+            const entries = dashboardLoading ? [] : calendarEntries;
+            const sevenDaysFromNow = new Date(now);
+            sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+            const endOfWindow = `${sevenDaysFromNow.getFullYear()}-${String(sevenDaysFromNow.getMonth() + 1).padStart(2, "0")}-${String(sevenDaysFromNow.getDate()).padStart(2, "0")}`;
             const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-            const upcomingEntries = [...calendarEntries]
+            const isOpenOrder = (order: WorkOrderView) => order.estado !== "completada" && order.estado !== "cancelada";
+            const activeOrders = workOrders.filter(isOpenOrder);
+            const overdueOrders = activeOrders.filter((order) => order.fecha_programada && order.fecha_programada < today);
+            const upcomingWorkOrders = activeOrders
+              .filter((order) => order.fecha_programada >= today && order.fecha_programada <= endOfWindow)
+              .sort((left, right) => left.fecha_programada.localeCompare(right.fecha_programada));
+            const todayOrders = upcomingWorkOrders.filter((order) => order.fecha_programada === today);
+            const upcomingEntries = [...entries]
               .filter((entry) => entry.fecha > today || (entry.fecha === today && entry.hora >= currentTime))
               .sort((left, right) => `${left.fecha} ${left.hora}`.localeCompare(`${right.fecha} ${right.hora}`));
-            const nextEntry = upcomingEntries[0];
-            const dateLabel = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }).replace(".", "").toUpperCase();
-            const daysUntil = nextEntry ? Math.max(0, Math.ceil((new Date(`${nextEntry.fecha}T${nextEntry.hora}:00`).getTime() - now.getTime()) / 86_400_000)) : 0;
+            const formatDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "short", timeZone: "UTC" }).replace(".", "").toLocaleUpperCase("es-AR");
+            const changePage = (id: string, label: string) => {
+              setActiveItem(id);
+              setActiveLabel(label);
+              setMobileMenuOpen(false);
+            };
+            const metrics: DashboardMetric[] = user.perfil === "Admin"
+              ? (() => {
+                const sentBudgets = budgets.filter((budget) => budget.estado === "enviado");
+                const expiredBudgets = budgets.filter((budget) =>
+                  (budget.estado === "borrador" || budget.estado === "enviado") &&
+                  Boolean(budget.vigente_hasta) &&
+                  budget.vigente_hasta! < today,
+                );
+                const acceptedThisMonth = budgets.filter((budget) =>
+                  budget.estado === "aceptado" && budget.fecha.startsWith(currentMonth),
+                );
+                const acceptedValue = acceptedThisMonth.reduce((sum, budget) => sum + budget.total, 0);
+                return [
+                  { label: "ÓRDENES ACTIVAS", value: String(activeOrders.length), caption: "Pendientes, programadas o en curso", detail: "Trabajos abiertos", icon: Activity },
+                  { label: "ÓRDENES ATRASADAS", value: String(overdueOrders.length), caption: "Fecha programada ya vencida", detail: overdueOrders.length ? "Requieren atención" : "Sin atrasos", icon: AlertTriangle, alert: overdueOrders.length > 0 },
+                  { label: "PRESUPUESTOS ENVIADOS", value: String(sentBudgets.length), caption: "Pendientes de respuesta", detail: currencyFormatter.format(sentBudgets.reduce((sum, budget) => sum + budget.total, 0)), icon: FileText },
+                  { label: "TRABAJOS PRÓXIMOS", value: String(upcomingWorkOrders.length), caption: "Programados para los próximos 7 días", detail: `${todayOrders.length} para hoy`, icon: CalendarDays },
+                  { label: "CLIENTES", value: String(clients.length), caption: "Clientes registrados", detail: "Cartera total", icon: UsersRound },
+                  { label: "ACEPTADOS ESTE MES", value: currencyFormatter.format(acceptedValue), caption: "Valor presupuestado, no cobrado", detail: `${acceptedThisMonth.length} presupuestos · ${expiredBudgets.length} vencidos`, icon: BadgeCheck, alert: expiredBudgets.length > 0 },
+                ];
+              })()
+              : [
+                { label: "MIS PENDIENTES", value: String(activeOrders.filter((order) => order.estado === "pendiente" || order.estado === "programada").length), caption: "Órdenes asignadas por atender", detail: "Pendientes o programadas", icon: ClipboardList },
+                { label: "EN CURSO", value: String(activeOrders.filter((order) => order.estado === "en_curso").length), caption: "Trabajos que ya comenzaron", detail: "Órdenes asignadas", icon: Activity },
+                { label: "PARA HOY", value: String(todayOrders.length), caption: "Órdenes programadas para hoy", detail: todayOrders.length ? "Revisá la agenda del día" : "No hay trabajos para hoy", icon: CalendarDays },
+                { label: "PRÓXIMOS 7 DÍAS", value: String(upcomingWorkOrders.length), caption: "Trabajos asignados con fecha", detail: "Incluye los trabajos de hoy", icon: Clock3 },
+              ];
+            const adminAlerts = user.perfil === "Admin"
+              ? [
+                ...(overdueOrders.length ? [{ title: `${overdueOrders.length} órdenes atrasadas`, detail: "Revisá su estado y programación.", icon: AlertTriangle, color: "quick-icon-coral", destination: "work-orders", label: "Órdenes de trabajo" }] : []),
+                ...(() => {
+                  const pendingCount = budgets.filter((budget) => budget.estado === "enviado").length;
+                  return pendingCount ? [{ title: `${pendingCount} presupuestos enviados`, detail: "Esperan una respuesta del cliente.", icon: FileText, color: "quick-icon-yellow", destination: "budgets", label: "Presupuestos" }] : [];
+                })(),
+                ...(() => {
+                  const unassignedCount = activeOrders.filter((order) => !order.usuario_asignado).length;
+                  return unassignedCount ? [{ title: `${unassignedCount} órdenes sin asignar`, detail: "Todavía no tienen un técnico asignado.", icon: UsersRound, color: "quick-icon-yellow", destination: "work-orders", label: "Órdenes de trabajo" }] : [];
+                })(),
+                ...(() => {
+                  const expiredCount = budgets.filter((budget) =>
+                    (budget.estado === "borrador" || budget.estado === "enviado") &&
+                    Boolean(budget.vigente_hasta) &&
+                    budget.vigente_hasta! < today,
+                  ).length;
+                  return expiredCount ? [{ title: `${expiredCount} presupuestos vencidos`, detail: "Su vigencia ya finalizó.", icon: Clock3, color: "quick-icon-coral", destination: "budgets", label: "Presupuestos" }] : [];
+                })(),
+              ]
+              : [];
+            const nowLabel = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).format(now).toLocaleUpperCase("es-AR");
 
             return (
               <>
-                <section aria-label="Indicadores de afiliación" className="stats-grid">
-                  <article className="stat-panel">
-                    <div className="stat-topline"><span>PRÓXIMA ACTIVIDAD</span><CalendarDays size={17} /></div>
-                    {nextEntry ? <>
-                      <strong className="stat-value">{dateLabel(nextEntry.fecha).split(" ")[0]} <small>{dateLabel(nextEntry.fecha).split(" ")[1]}</small></strong>
-                      <span className="stat-caption">{nextEntry.descripcion}</span>
-                      <span className="stat-trend"><Clock3 size={13} /> {daysUntil === 0 ? `Hoy · ${nextEntry.hora}` : `En ${daysUntil} ${daysUntil === 1 ? "día" : "días"}`}</span>
-                    </> : <>
-                      <strong className="stat-value">-- <small>---</small></strong>
-                      <span className="stat-caption">No hay actividades próximas</span>
-                      <span className="stat-trend"><Clock3 size={13} /> Tu agenda está al día</span>
-                    </>}
-                  </article>
+                <div className="page-intro">
+                  <div>
+                    <span className="eyebrow">{nowLabel}</span>
+                    <h1>Buen día,</h1>
+                    <h1 className="intro-name">{user.usuario}.</h1>
+                    <p>{user.perfil === "Admin" ? "Vista general de clientes, presupuestos y servicios." : "Tus trabajos asignados y la agenda de servicios."}</p>
+                  </div>
+                  <button className="outline-action" onClick={() => changePage("calendar", "Agenda")} type="button"><CalendarDays size={16} /><span>Ver calendario</span><ArrowUpRight size={15} /></button>
+                </div>
+
+                {dashboardError && !dashboardLoading && <p className="users-message users-message-error" role="alert">{dashboardError} <button className="panel-link" onClick={() => { setDashboardError(""); setDashboardRefresh((value) => value + 1); }} type="button">Reintentar</button></p>}
+                {dashboardLoading && <p className="history-loading" role="status">Actualizando indicadores...</p>}
+
+                <section aria-busy={dashboardLoading} aria-label="Indicadores de gestión" className="stats-grid">
+                  {metrics.map((metric) => (
+                    <article className="stat-panel" key={metric.label}>
+                      <div className="stat-topline"><span>{metric.label}</span><metric.icon size={17} /></div>
+                      <strong className={`stat-value${metric.alert ? " stat-value-alert" : ""}`}>{metric.value}</strong>
+                      <span className="stat-caption">{metric.caption}</span>
+                      <span className={`stat-trend${metric.alert ? " trend-alert" : ""}`}><Activity size={13} /> {metric.detail}</span>
+                    </article>
+                  ))}
                 </section>
 
                 <section className="lower-grid">
                   <article className="activity-panel">
                     <div className="panel-heading">
-                      <div><span className="eyebrow">TU COMUNIDAD</span><h2>Lo que se viene</h2></div>
-                      <button className="panel-link" onClick={() => { setActiveItem("calendar"); setActiveLabel("Agenda"); }} type="button">Ver agenda <ArrowUpRight size={14} /></button>
+                      <div><span className="eyebrow">OPERACIÓN</span><h2>Próximos trabajos</h2></div>
+                      <button className="panel-link" onClick={() => changePage("work-orders", "Órdenes de trabajo")} type="button">Ver órdenes <ArrowUpRight size={14} /></button>
                     </div>
-                    {upcomingEntries.slice(0, 3).map((entry) => {
-                      const [day, month] = dateLabel(entry.fecha).split(" ");
+                    {upcomingWorkOrders.slice(0, 5).map((order) => {
+                      const [day, month] = formatDate(order.fecha_programada).split(" ");
+                      const clientName = order.cliente ? `${order.cliente.nombre} ${order.cliente.apellido}` : "Cliente no disponible";
                       return (
-                        <button className="event-row event-row-button" key={entry.id} onClick={() => { setActiveItem("calendar"); setActiveLabel("Agenda"); }} type="button">
-                          <span className="event-date"><strong>{day}</strong><span>{month}</span></span>
-                          <span className="event-details"><strong>{entry.descripcion}</strong><span><Clock3 size={13} /> {entry.hora} · {entry.duracion} min</span></span>
-                          <span className="event-type">ACTIVIDAD</span><ChevronRight className="event-chevron" size={17} />
+                        <button className="event-row event-row-button" key={order.id} onClick={() => changePage("work-orders", "Órdenes de trabajo")} type="button">
+                          <span className="event-date event-date-green"><strong>{day}</strong><span>{month}</span></span>
+                          <span className="event-details"><strong>{order.descripcion}</strong><span>{clientName} · {order.direccion || "Sin dirección"}</span></span>
+                          <span className="event-type event-type-green">{workOrderStatusLabels[order.estado]}</span><ChevronRight className="event-chevron" size={17} />
                         </button>
                       );
                     })}
-                    {upcomingEntries.length === 0 && <p className="calendar-empty-summary">Todavía no hay actividades próximas en tu agenda.</p>}
+                    {!upcomingWorkOrders.length && <p className="calendar-empty-summary">{dashboardLoading ? "Cargando trabajos..." : "No hay trabajos programados para los próximos 7 días."}</p>}
+                  </article>
+
+                  <article className="quick-panel">
+                    <div className="panel-heading">
+                      <div><span className="eyebrow">{user.perfil === "Admin" ? "SEGUIMIENTO" : "AGENDA"}</span><h2>{user.perfil === "Admin" ? "Alertas y agenda" : "Próximas actividades"}</h2></div>
+                      <button className="panel-link" onClick={() => changePage("calendar", "Agenda")} type="button">Agenda <ArrowUpRight size={14} /></button>
+                    </div>
+                    {adminAlerts.map((alert) => (
+                      <button className="quick-link" key={alert.title} onClick={() => changePage(alert.destination, alert.label)} type="button">
+                        <span className={`quick-icon ${alert.color}`}><alert.icon size={16} /></span>
+                        <span><strong>{alert.title}</strong><small>{alert.detail}</small></span>
+                        <ChevronRight size={15} />
+                      </button>
+                    ))}
+                    {upcomingEntries.slice(0, user.perfil === "Admin" ? 2 : 4).map((entry) => (
+                      <button className="quick-link" key={entry.id} onClick={() => changePage("calendar", "Agenda")} type="button">
+                        <span className="quick-icon quick-icon-green"><CalendarDays size={16} /></span>
+                        <span><strong>{entry.descripcion}</strong><small>{formatDate(entry.fecha)} · {entry.hora}</small></span>
+                        <ChevronRight size={15} />
+                      </button>
+                    ))}
+                    {!dashboardLoading && !adminAlerts.length && !upcomingEntries.length && <p className="calendar-empty-summary">No hay alertas ni actividades próximas.</p>}
                   </article>
                 </section>
               </>
