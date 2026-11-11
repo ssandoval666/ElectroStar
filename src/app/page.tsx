@@ -35,11 +35,10 @@ import BudgetsAdmin from "@/app/budgets-admin";
 import Calendar from "@/app/calendar";
 import ClientsHistoryAdmin from "@/app/clients-history-admin";
 import WorkOrdersAdmin from "@/app/work-orders-admin";
-import type { CalendarEntry } from "@/lib/calendar";
-import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
-import type { WorkOrderStatus, WorkOrderView } from "@/lib/work-orders";
+import type { WorkOrderStatus } from "@/lib/work-orders";
 import MenusAdmin from "@/app/menus-admin";
 import type { MenuItem } from "@/lib/menu";
+import type { DashboardSummary } from "@/lib/dashboard";
 
 type LoginUser = {
   idusuario: string;
@@ -66,21 +65,22 @@ const workOrderStatusLabels: Record<WorkOrderStatus, string> = {
   cancelada: "Cancelada",
 };
 
-async function fetchDashboardItems<T>(endpoint: string): Promise<T[]> {
-  const response = await fetch(endpoint);
+async function fetchDashboardSummary(date: string, time: string): Promise<DashboardSummary> {
+  const query = new URLSearchParams({ date, time });
+  const response = await fetch(`/api/dashboard?${query}`);
   const result: unknown = await response.json();
   if (!result || typeof result !== "object") {
     throw new Error("El servicio devolvió una respuesta no válida.");
   }
 
-  const body = result as { items?: unknown; message?: unknown };
+  const body = result as { summary?: unknown; message?: unknown };
   if (!response.ok) {
     throw new Error(typeof body.message === "string" ? body.message : "No se pudieron cargar los datos del resumen.");
   }
-  if (!Array.isArray(body.items)) {
+  if (!body.summary || typeof body.summary !== "object") {
     throw new Error("El servicio devolvió datos incompletos para el resumen.");
   }
-  return body.items as T[];
+  return body.summary as DashboardSummary;
 }
 
 const iconByName: Record<string, LucideIcon> = {
@@ -112,10 +112,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [loginFeedback, setLoginFeedback] = useState<LoginFeedback>("idle");
   const [logoutConfirmationOpen, setLogoutConfirmationOpen] = useState(false);
-  const [calendarEntries, setCalendarEntries] = useState<CalendarEntry[]>([]);
-  const [dashboardWorkOrders, setDashboardWorkOrders] = useState<WorkOrderView[]>([]);
-  const [dashboardBudgets, setDashboardBudgets] = useState<BudgetRecord[]>([]);
-  const [dashboardClients, setDashboardClients] = useState<ClientRecord[]>([]);
+  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
   const [dashboardError, setDashboardError] = useState("");
   const [dashboardRefresh, setDashboardRefresh] = useState(0);
   const [loadedDashboardKey, setLoadedDashboardKey] = useState("");
@@ -200,10 +197,7 @@ export default function Home() {
     setActiveItem("resumen");
     setActiveLabel("Resumen");
     setMobileMenuOpen(false);
-    setCalendarEntries([]);
-    setDashboardWorkOrders([]);
-    setDashboardBudgets([]);
-    setDashboardClients([]);
+    setDashboard(null);
     setDashboardError("");
     setLoadedDashboardKey("");
   }, []);
@@ -290,40 +284,19 @@ export default function Home() {
     if (!currentUser || activeItem !== "resumen") return;
     let active = true;
     const requestKey = `${currentUser.idusuario}:${currentUser.perfil}:${dashboardRefresh}`;
-    const userProfile = currentUser.perfil;
-
     async function loadDashboard() {
       try {
-        let workOrders: WorkOrderView[];
-        let entries: CalendarEntry[];
-        let budgets: BudgetRecord[] = [];
-        let clients: ClientRecord[] = [];
-        if (userProfile === "Admin") {
-          [workOrders, entries, budgets, clients] = await Promise.all([
-            fetchDashboardItems<WorkOrderView>("/api/work-orders"),
-            fetchDashboardItems<CalendarEntry>("/api/calendar"),
-            fetchDashboardItems<BudgetRecord>("/api/budgets"),
-            fetchDashboardItems<ClientRecord>("/api/clients"),
-          ]);
-        } else {
-          [workOrders, entries] = await Promise.all([
-            fetchDashboardItems<WorkOrderView>("/api/work-orders"),
-            fetchDashboardItems<CalendarEntry>("/api/calendar"),
-          ]);
-        }
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        const summary = await fetchDashboardSummary(today, currentTime);
         if (!active) return;
-        setDashboardWorkOrders(workOrders);
-        setCalendarEntries(entries);
-        setDashboardBudgets(budgets);
-        setDashboardClients(clients);
+        setDashboard(summary);
         setDashboardError("");
         setLoadedDashboardKey(requestKey);
       } catch (loadError) {
         if (!active) return;
-        setDashboardWorkOrders([]);
-        setCalendarEntries([]);
-        setDashboardBudgets([]);
-        setDashboardClients([]);
+        setDashboard(null);
         setDashboardError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los datos del resumen.");
         setLoadedDashboardKey(requestKey);
       }
@@ -500,26 +473,11 @@ export default function Home() {
             <>
           {(() => {
             const now = new Date();
-            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-            const currentMonth = today.slice(0, 7);
-            const workOrders = dashboardLoading ? [] : dashboardWorkOrders;
-            const budgets = dashboardLoading ? [] : dashboardBudgets;
-            const clients = dashboardLoading ? [] : dashboardClients;
-            const entries = dashboardLoading ? [] : calendarEntries;
-            const sevenDaysFromNow = new Date(now);
-            sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-            const endOfWindow = `${sevenDaysFromNow.getFullYear()}-${String(sevenDaysFromNow.getMonth() + 1).padStart(2, "0")}-${String(sevenDaysFromNow.getDate()).padStart(2, "0")}`;
-            const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-            const isOpenOrder = (order: WorkOrderView) => order.estado !== "completada" && order.estado !== "cancelada";
-            const activeOrders = workOrders.filter(isOpenOrder);
-            const overdueOrders = activeOrders.filter((order) => order.fecha_programada && order.fecha_programada < today);
-            const upcomingWorkOrders = activeOrders
-              .filter((order) => order.fecha_programada >= today && order.fecha_programada <= endOfWindow)
-              .sort((left, right) => left.fecha_programada.localeCompare(right.fecha_programada));
-            const todayOrders = upcomingWorkOrders.filter((order) => order.fecha_programada === today);
-            const upcomingEntries = [...entries]
-              .filter((entry) => entry.fecha > today || (entry.fecha === today && entry.hora >= currentTime))
-              .sort((left, right) => `${left.fecha} ${left.hora}`.localeCompare(`${right.fecha} ${right.hora}`));
+            const summary = dashboardLoading ? null : dashboard;
+            const orderStats = summary?.orders;
+            const adminStats = summary?.admin;
+            const upcomingWorkOrders = summary?.upcomingWorkOrders ?? [];
+            const upcomingEntries = summary?.upcomingEntries ?? [];
             const formatDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "short", timeZone: "UTC" }).replace(".", "").toLocaleUpperCase("es-AR");
             const changePage = (id: string, label: string) => {
               setActiveItem(id);
@@ -527,51 +485,26 @@ export default function Home() {
               setMobileMenuOpen(false);
             };
             const metrics: DashboardMetric[] = user.perfil === "Admin"
-              ? (() => {
-                const sentBudgets = budgets.filter((budget) => budget.estado === "enviado");
-                const expiredBudgets = budgets.filter((budget) =>
-                  (budget.estado === "borrador" || budget.estado === "enviado") &&
-                  Boolean(budget.vigente_hasta) &&
-                  budget.vigente_hasta! < today,
-                );
-                const acceptedThisMonth = budgets.filter((budget) =>
-                  budget.estado === "aceptado" && budget.fecha.startsWith(currentMonth),
-                );
-                const acceptedValue = acceptedThisMonth.reduce((sum, budget) => sum + budget.total, 0);
-                return [
-                  { label: "ÓRDENES ACTIVAS", value: String(activeOrders.length), caption: "Pendientes, programadas o en curso", detail: "Trabajos abiertos", icon: Activity },
-                  { label: "ÓRDENES ATRASADAS", value: String(overdueOrders.length), caption: "Fecha programada ya vencida", detail: overdueOrders.length ? "Requieren atención" : "Sin atrasos", icon: AlertTriangle, alert: overdueOrders.length > 0 },
-                  { label: "PRESUPUESTOS ENVIADOS", value: String(sentBudgets.length), caption: "Pendientes de respuesta", detail: currencyFormatter.format(sentBudgets.reduce((sum, budget) => sum + budget.total, 0)), icon: FileText },
-                  { label: "TRABAJOS PRÓXIMOS", value: String(upcomingWorkOrders.length), caption: "Programados para los próximos 7 días", detail: `${todayOrders.length} para hoy`, icon: CalendarDays },
-                  { label: "CLIENTES", value: String(clients.length), caption: "Clientes registrados", detail: "Cartera total", icon: UsersRound },
-                  { label: "ACEPTADOS ESTE MES", value: currencyFormatter.format(acceptedValue), caption: "Valor presupuestado, no cobrado", detail: `${acceptedThisMonth.length} presupuestos · ${expiredBudgets.length} vencidos`, icon: BadgeCheck, alert: expiredBudgets.length > 0 },
-                ];
-              })()
+              ? [
+                { label: "ÓRDENES ACTIVAS", value: String(orderStats?.active ?? 0), caption: "Pendientes, programadas o en curso", detail: "Trabajos abiertos", icon: Activity },
+                { label: "ÓRDENES ATRASADAS", value: String(orderStats?.overdue ?? 0), caption: "Fecha programada ya vencida", detail: orderStats?.overdue ? "Requieren atención" : "Sin atrasos", icon: AlertTriangle, alert: Boolean(orderStats?.overdue) },
+                { label: "PRESUPUESTOS ENVIADOS", value: String(adminStats?.sentBudgets ?? 0), caption: "Pendientes de respuesta", detail: currencyFormatter.format(adminStats?.sentBudgetValue ?? 0), icon: FileText },
+                { label: "TRABAJOS PRÓXIMOS", value: String(orderStats?.upcoming ?? 0), caption: "Programados para los próximos 7 días", detail: `${orderStats?.today ?? 0} para hoy`, icon: CalendarDays },
+                { label: "CLIENTES", value: String(adminStats?.clients ?? 0), caption: "Clientes registrados", detail: "Cartera total", icon: UsersRound },
+                { label: "ACEPTADOS ESTE MES", value: currencyFormatter.format(adminStats?.acceptedThisMonthValue ?? 0), caption: "Valor presupuestado, no cobrado", detail: `${adminStats?.acceptedThisMonth ?? 0} presupuestos · ${adminStats?.expiredBudgets ?? 0} vencidos`, icon: BadgeCheck, alert: Boolean(adminStats?.expiredBudgets) },
+              ]
               : [
-                { label: "MIS PENDIENTES", value: String(activeOrders.filter((order) => order.estado === "pendiente" || order.estado === "programada").length), caption: "Órdenes asignadas por atender", detail: "Pendientes o programadas", icon: ClipboardList },
-                { label: "EN CURSO", value: String(activeOrders.filter((order) => order.estado === "en_curso").length), caption: "Trabajos que ya comenzaron", detail: "Órdenes asignadas", icon: Activity },
-                { label: "PARA HOY", value: String(todayOrders.length), caption: "Órdenes programadas para hoy", detail: todayOrders.length ? "Revisá la agenda del día" : "No hay trabajos para hoy", icon: CalendarDays },
-                { label: "PRÓXIMOS 7 DÍAS", value: String(upcomingWorkOrders.length), caption: "Trabajos asignados con fecha", detail: "Incluye los trabajos de hoy", icon: Clock3 },
+                { label: "MIS PENDIENTES", value: String(orderStats?.pending ?? 0), caption: "Órdenes asignadas por atender", detail: "Pendientes o programadas", icon: ClipboardList },
+                { label: "EN CURSO", value: String(orderStats?.inProgress ?? 0), caption: "Trabajos que ya comenzaron", detail: "Órdenes asignadas", icon: Activity },
+                { label: "PARA HOY", value: String(orderStats?.today ?? 0), caption: "Órdenes programadas para hoy", detail: orderStats?.today ? "Revisá la agenda del día" : "No hay trabajos para hoy", icon: CalendarDays },
+                { label: "PRÓXIMOS 7 DÍAS", value: String(orderStats?.upcoming ?? 0), caption: "Trabajos asignados con fecha", detail: "Incluye los trabajos de hoy", icon: Clock3 },
               ];
             const adminAlerts = user.perfil === "Admin"
               ? [
-                ...(overdueOrders.length ? [{ title: `${overdueOrders.length} órdenes atrasadas`, detail: "Revisá su estado y programación.", icon: AlertTriangle, color: "quick-icon-coral", destination: "work-orders", label: "Órdenes de trabajo" }] : []),
-                ...(() => {
-                  const pendingCount = budgets.filter((budget) => budget.estado === "enviado").length;
-                  return pendingCount ? [{ title: `${pendingCount} presupuestos enviados`, detail: "Esperan una respuesta del cliente.", icon: FileText, color: "quick-icon-yellow", destination: "budgets", label: "Presupuestos" }] : [];
-                })(),
-                ...(() => {
-                  const unassignedCount = activeOrders.filter((order) => !order.usuario_asignado).length;
-                  return unassignedCount ? [{ title: `${unassignedCount} órdenes sin asignar`, detail: "Todavía no tienen un técnico asignado.", icon: UsersRound, color: "quick-icon-yellow", destination: "work-orders", label: "Órdenes de trabajo" }] : [];
-                })(),
-                ...(() => {
-                  const expiredCount = budgets.filter((budget) =>
-                    (budget.estado === "borrador" || budget.estado === "enviado") &&
-                    Boolean(budget.vigente_hasta) &&
-                    budget.vigente_hasta! < today,
-                  ).length;
-                  return expiredCount ? [{ title: `${expiredCount} presupuestos vencidos`, detail: "Su vigencia ya finalizó.", icon: Clock3, color: "quick-icon-coral", destination: "budgets", label: "Presupuestos" }] : [];
-                })(),
+                ...(orderStats?.overdue ? [{ title: `${orderStats.overdue} órdenes atrasadas`, detail: "Revisá su estado y programación.", icon: AlertTriangle, color: "quick-icon-coral", destination: "work-orders", label: "Órdenes de trabajo" }] : []),
+                ...(adminStats?.sentBudgets ? [{ title: `${adminStats.sentBudgets} presupuestos enviados`, detail: "Esperan una respuesta del cliente.", icon: FileText, color: "quick-icon-yellow", destination: "budgets", label: "Presupuestos" }] : []),
+                ...(orderStats?.unassigned ? [{ title: `${orderStats.unassigned} órdenes sin asignar`, detail: "Todavía no tienen un técnico asignado.", icon: UsersRound, color: "quick-icon-yellow", destination: "work-orders", label: "Órdenes de trabajo" }] : []),
+                ...(adminStats?.expiredBudgets ? [{ title: `${adminStats.expiredBudgets} presupuestos vencidos`, detail: "Su vigencia ya finalizó.", icon: Clock3, color: "quick-icon-coral", destination: "budgets", label: "Presupuestos" }] : []),
               ]
               : [];
             const nowLabel = new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).format(now).toLocaleUpperCase("es-AR");
@@ -610,7 +543,7 @@ export default function Home() {
                     </div>
                     {upcomingWorkOrders.slice(0, 5).map((order) => {
                       const [day, month] = formatDate(order.fecha_programada).split(" ");
-                      const clientName = order.cliente ? `${order.cliente.nombre} ${order.cliente.apellido}` : "Cliente no disponible";
+                      const clientName = order.cliente ?? "Cliente no disponible";
                       return (
                         <button className="event-row event-row-button" key={order.id} onClick={() => changePage("work-orders", "Órdenes de trabajo")} type="button">
                           <span className="event-date event-date-green"><strong>{day}</strong><span>{month}</span></span>

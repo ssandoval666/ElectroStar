@@ -24,13 +24,27 @@ export type WorkOrderView = WorkOrder & {
   cliente: { nombre: string; apellido: string; telefono: string } | null;
 };
 
-export async function ensureWorkOrderForBudget(budget: BudgetRecord, userId: string) {
-  const items = await readJsonEntity<WorkOrder[]>("ordenes-trabajo.json", async () => []);
-  const existing = items.find((item) => item.idpresupuesto === budget.idpresupuesto);
-  if (existing) return existing;
+let pendingWorkOrderBatch: Promise<WorkOrder[]> | null = null;
 
+async function appendMissingWorkOrders(budgets: BudgetRecord[], existingWorkOrders: WorkOrder[]) {
+  const existingBudgetIds = new Set(existingWorkOrders.map((workOrder) => workOrder.idpresupuesto));
+  const missingOrders: WorkOrder[] = [];
+  for (const budget of budgets) {
+    if (budget.estado !== "aceptado" || existingBudgetIds.has(budget.idpresupuesto)) continue;
+    existingBudgetIds.add(budget.idpresupuesto);
+    missingOrders.push(createWorkOrderForBudget(budget, budget.usuario_modificacion));
+  }
+
+  if (!missingOrders.length) return existingWorkOrders;
+
+  const workOrders = [...existingWorkOrders, ...missingOrders];
+  await writeJsonEntity("ordenes-trabajo.json", workOrders);
+  return workOrders;
+}
+
+function createWorkOrderForBudget(budget: BudgetRecord, userId: string): WorkOrder {
   const now = new Date().toISOString();
-  const workOrder: WorkOrder = {
+  return {
     id: randomUUID(),
     idpresupuesto: budget.idpresupuesto,
     idclientes: budget.idclientes,
@@ -45,6 +59,32 @@ export async function ensureWorkOrderForBudget(budget: BudgetRecord, userId: str
     fecha_modificacion: now,
     usuario_modificacion: userId,
   };
+}
+
+export async function ensureWorkOrderForBudget(budget: BudgetRecord, userId: string) {
+  const items = await readJsonEntity<WorkOrder[]>("ordenes-trabajo.json", async () => []);
+  const existing = items.find((item) => item.idpresupuesto === budget.idpresupuesto);
+  if (existing) return existing;
+
+  const workOrder = createWorkOrderForBudget(budget, userId);
   await writeJsonEntity("ordenes-trabajo.json", [...items, workOrder]);
   return workOrder;
+}
+
+export async function ensureWorkOrdersForBudgets(
+  budgets: BudgetRecord[],
+  existingWorkOrders: WorkOrder[],
+): Promise<WorkOrder[]> {
+  if (pendingWorkOrderBatch) {
+    return appendMissingWorkOrders(budgets, await pendingWorkOrderBatch);
+  }
+
+  const batch = appendMissingWorkOrders(budgets, existingWorkOrders);
+  pendingWorkOrderBatch = batch;
+
+  try {
+    return await batch;
+  } finally {
+    if (pendingWorkOrderBatch === batch) pendingWorkOrderBatch = null;
+  }
 }

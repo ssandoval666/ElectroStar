@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { getAdminSessionUser } from "@/lib/session";
 import { writeJsonEntity } from "@/lib/drive-json-store";
-import { getUsers, toPublicUser, type UserProfile } from "@/lib/users";
+import { getUsers, invalidateSessionUsersCache, toPublicUser, type UserProfile } from "@/lib/users";
 
 type RouteContext = { params: Promise<{ idusuario: string }> };
 type UpdateUserPayload = {
@@ -63,6 +63,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     };
     users[index] = updatedUser;
     await writeJsonEntity("usuarios.json", users);
+    invalidateSessionUsersCache();
 
     return Response.json({ user: toPublicUser(updatedUser) });
   } catch (error) {
@@ -90,6 +91,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     }
 
     await writeJsonEntity("usuarios.json", users.filter((item) => item.idusuario !== idusuario));
+    invalidateSessionUsersCache();
     return Response.json({ ok: true });
   } catch (error) {
     console.error("Users delete error:", error);

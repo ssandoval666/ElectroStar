@@ -63,6 +63,7 @@ npm start
 - Las contraseñas se validan contra hashes bcrypt; las respuestas de usuario no exponen el hash.
 - Los perfiles disponibles son `Admin` y `Operario`.
 - El JWT se guarda en una cookie HttpOnly, SameSite Lax y con una duración deslizante de 12 horas. Las peticiones autenticadas renuevan la cookie cuando queda menos de la mitad de su vigencia.
+- La validación consulta una caché en memoria de usuarios con vencimiento de 5 segundos. Los cambios de usuarios hechos por la API invalidan la caché en esa instancia; las demás instancias reflejan el cambio al vencer el plazo.
 - La interfaz vuelve a validar la sesión periódicamente y cierra la sesión tras el tiempo de inactividad configurado.
 - Cerrar sesión desde la interfaz solicita confirmación.
 - El login incluye una animación de circuito durante la validación, con estados visuales diferenciados para acceso aprobado y credenciales rechazadas. La animación respeta la preferencia del sistema por movimiento reducido.
@@ -116,6 +117,7 @@ Las rutas de administración requieren una sesión `Admin` y responden `403` si 
 | `POST /api/auth/login` | Público | Inicia sesión con usuario y contraseña. |
 | `POST /api/auth/logout` | Sesión | Cierra la sesión. |
 | `GET /api/auth/session` | Sesión | Valida y renueva la sesión cuando corresponde. |
+| `GET /api/dashboard` | Sesión | Devuelve métricas agregadas y los próximos elementos visibles para el perfil. |
 | `GET /api/menu` | Sesión | Devuelve el menú permitido para el perfil. |
 | `PUT /api/menu` | Admin | Valida y guarda el árbol, los perfiles y destinos del menú. |
 | `GET /api/users` | Admin | Lista usuarios sin incluir sus hashes de contraseña. |
@@ -135,7 +137,7 @@ Las rutas de administración requieren una sesión `Admin` y responden `403` si 
 | `PATCH /api/budgets/:idpresupuesto` | Admin | Modifica un presupuesto no aceptado. |
 | `DELETE /api/budgets/:idpresupuesto` | Admin | Elimina un presupuesto solo si no tiene una orden asociada. |
 | `GET /api/budgets/:idpresupuesto/export` | Admin | Descarga el presupuesto como PDF. |
-| `GET /api/work-orders` | Sesión | Admin lista todas; Operario solo las asignadas a su usuario. |
+| `GET /api/work-orders` | Sesión | Admin lista todas; Operario solo las asignadas a su usuario. Completa en lote órdenes faltantes de presupuestos aceptados. |
 | `PATCH /api/work-orders/:id` | Sesión | Admin configura la orden; Operario actualiza el estado de una orden asignada. |
 | `GET /api/calendar` | Sesión | Lista actividades de agenda. |
 | `POST /api/calendar` | Sesión | Crea una actividad. |

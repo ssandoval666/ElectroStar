@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { getUsers, toPublicUser, type PublicUser } from "@/lib/users";
+import { getSessionUserById, type PublicUser } from "@/lib/users";
 
 export const SESSION_COOKIE_NAME = "electrostar_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 12;
@@ -122,12 +122,12 @@ export async function getCurrentSessionUser(): Promise<SessionUser | null> {
   const session = await getVerifiedSession();
   if (!session) return null;
 
-  const storedUser = (await getUsers()).find((user) => user.idusuario === session.user.idusuario);
+  const storedUser = await getSessionUserById(session.user.idusuario);
   if (!storedUser) return null;
-  const sessionVersion = storedUser.sessionVersion ?? 0;
+  const sessionVersion = storedUser.sessionVersion;
   if (session.sessionVersion !== sessionVersion) return null;
 
-  const publicUser = toPublicUser(storedUser);
+  const publicUser = storedUser.user;
   const secondsUntilExpiry = session.expiresAt - Math.floor(Date.now() / 1000);
   if (secondsUntilExpiry <= SESSION_REFRESH_THRESHOLD_SECONDS) {
     await setSessionCookie(publicUser, sessionVersion);

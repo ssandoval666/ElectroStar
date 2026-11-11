@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
 import { getAdminSessionUser } from "@/lib/session";
 import { writeJsonEntity } from "@/lib/drive-json-store";
-import { getUsers, toPublicUser, type UserProfile } from "@/lib/users";
+import { getUsers, invalidateSessionUsersCache, toPublicUser, type UserProfile } from "@/lib/users";
 
 const validProfiles: UserProfile[] = ["Admin", "Operario"];
 
@@ -62,6 +62,7 @@ export async function POST(request: Request) {
       sessionVersion: 0,
     };
     await writeJsonEntity("usuarios.json", [...users, newUser]);
+    invalidateSessionUsersCache();
 
     return Response.json({ user: toPublicUser(newUser) }, { status: 201 });
   } catch (error) {
