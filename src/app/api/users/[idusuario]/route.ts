@@ -6,6 +6,8 @@ import { getUsers, invalidateSessionUsersCache, toPublicUser, type UserProfile }
 type RouteContext = { params: Promise<{ idusuario: string }> };
 type UpdateUserPayload = {
   usuario?: unknown;
+  nombre?: unknown;
+  apellido?: unknown;
   password?: unknown;
   perfil?: unknown;
 };
@@ -29,12 +31,19 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   const userPayload = payload as UpdateUserPayload;
   const username = typeof userPayload.usuario === "string" ? userPayload.usuario.trim() : "";
+  const firstName = typeof userPayload.nombre === "string" ? userPayload.nombre.trim() : "";
+  const lastName = typeof userPayload.apellido === "string" ? userPayload.apellido.trim() : "";
   const profile = userPayload.perfil;
   const password = typeof userPayload.password === "string" ? userPayload.password : "";
-  if (!username || username.length > 64 || !validProfiles.includes(profile as UserProfile)) {
-    return Response.json({ message: "Ingresá un usuario y un perfil válido." }, { status: 400 });
+  if (
+    !username || username.length > 64 ||
+    !firstName || firstName.length > 80 ||
+    !lastName || lastName.length > 80 ||
+    !validProfiles.includes(profile as UserProfile)
+  ) {
+    return Response.json({ message: "Ingresá usuario, nombre, apellido y un perfil válido." }, { status: 400 });
   }
-  if (password.length < 8) {
+  if (password && password.length < 8) {
     return Response.json({ message: "La contraseña debe tener al menos 8 caracteres." }, { status: 400 });
   }
 
@@ -57,9 +66,13 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const updatedUser = {
       ...currentUser,
       usuario: username,
+      nombre: firstName,
+      apellido: lastName,
       perfil: profile as UserProfile,
-      password: await bcrypt.hash(password, 12),
-      sessionVersion: (currentUser.sessionVersion ?? 0) + 1,
+      ...(password ? { password: await bcrypt.hash(password, 12) } : {}),
+      sessionVersion: (currentUser.sessionVersion ?? 0) + (
+        password || profile !== currentUser.perfil ? 1 : 0
+      ),
     };
     users[index] = updatedUser;
     await writeJsonEntity("usuarios.json", users);

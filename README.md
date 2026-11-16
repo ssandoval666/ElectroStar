@@ -108,6 +108,10 @@ Los usuarios autenticados pueden consultar, crear, editar y borrar actividades c
 
 El perfil `Admin` dispone de la opción **Menús** dentro del submenú **Administración**. Desde el árbol puede crear, editar y eliminar nodos, asignarles perfiles y vincularlos con las secciones disponibles de la aplicación. Los nodos se pueden reordenar o anidar mediante arrastrar y soltar. El acceso a la pantalla de administración y su API está restringido en el servidor al perfil `Admin`; los destinos de las opciones se limitan a secciones existentes.
 
+### Usuarios del sistema
+
+El ABM de usuarios permite registrar y modificar nombre, apellido, usuario de acceso y perfil. Las cuentas antiguas sin nombre y apellido siguen siendo válidas y se muestran temporalmente con su usuario de acceso hasta completar esos datos. Al editar, la contraseña es opcional; al cambiarla o modificar el perfil se revocan las sesiones anteriores.
+
 ## API
 
 Las rutas de administración requieren una sesión `Admin` y responden `403` si el perfil no está autorizado. Las rutas que requieren inicio de sesión responden `401` si la sesión no es válida.
@@ -120,9 +124,9 @@ Las rutas de administración requieren una sesión `Admin` y responden `403` si 
 | `GET /api/dashboard` | Sesión | Devuelve métricas agregadas y los próximos elementos visibles para el perfil. |
 | `GET /api/menu` | Sesión | Devuelve el menú permitido para el perfil. |
 | `PUT /api/menu` | Admin | Valida y guarda el árbol, los perfiles y destinos del menú. |
-| `GET /api/users` | Admin | Lista usuarios sin incluir sus hashes de contraseña. |
-| `POST /api/users` | Admin | Crea un usuario. |
-| `PATCH /api/users/:idusuario` | Admin | Modifica un usuario. |
+| `GET /api/users` | Admin | Lista usuarios y perfil, sin incluir sus hashes de contraseña. |
+| `POST /api/users` | Admin | Crea un usuario con nombre, apellido y contraseña. |
+| `PATCH /api/users/:idusuario` | Admin | Modifica nombre, apellido, usuario y perfil; la contraseña es opcional. |
 | `DELETE /api/users/:idusuario` | Admin | Elimina un usuario. |
 | `GET /api/products` | Admin | Lista productos y servicios. |
 | `POST /api/products` | Admin | Crea un producto o servicio. |
@@ -150,7 +154,7 @@ Cada entidad se guarda como un archivo JSON. En desarrollo sin Google Drive, los
 
 | Archivo | Contenido |
 |---|---|
-| `usuarios.json` | Usuarios y hashes bcrypt de contraseña. |
+| `usuarios.json` | Usuarios, nombre, apellido y hashes bcrypt de contraseña. |
 | `menu.json` | Elementos y estructura del menú. |
 | `productos.json` | Catálogo de productos y servicios. |
 | `clientes.json` | Datos de clientes. |

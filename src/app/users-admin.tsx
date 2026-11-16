@@ -6,16 +6,20 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 type ManagedUser = {
   idusuario: string;
   usuario: string;
+  nombre?: string;
+  apellido?: string;
   perfil: "Admin" | "Operario";
 };
 
 type UserForm = {
   usuario: string;
+  nombre: string;
+  apellido: string;
   password: string;
   perfil: ManagedUser["perfil"];
 };
 
-const emptyForm: UserForm = { usuario: "", password: "", perfil: "Operario" };
+const emptyForm: UserForm = { usuario: "", nombre: "", apellido: "", password: "", perfil: "Operario" };
 
 export default function UsersAdmin() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
@@ -73,7 +77,13 @@ export default function UsersAdmin() {
 
   function startEdit(user: ManagedUser) {
     setEditingId(user.idusuario);
-    setForm({ usuario: user.usuario, password: "", perfil: user.perfil });
+    setForm({
+      usuario: user.usuario,
+      nombre: user.nombre ?? "",
+      apellido: user.apellido ?? "",
+      password: "",
+      perfil: user.perfil,
+    });
     setError("");
     setNotice("");
     setFormOpen(true);
@@ -102,6 +112,8 @@ export default function UsersAdmin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           usuario: form.usuario,
+          nombre: form.nombre,
+          apellido: form.apellido,
           perfil: form.perfil,
           password: form.password,
         }),
@@ -140,7 +152,7 @@ export default function UsersAdmin() {
   }
 
   const filteredUsers = users.filter((user) =>
-    user.usuario.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
+    `${user.nombre ?? ""} ${user.apellido ?? ""} ${user.usuario}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
   );
 
   return (
@@ -170,8 +182,16 @@ export default function UsersAdmin() {
                 <input autoComplete="off" autoFocus maxLength={64} onChange={(event) => setForm((value) => ({ ...value, usuario: event.target.value }))} required value={form.usuario} />
               </label>
               <label>
+                <span>Nombre</span>
+                <input autoComplete="given-name" maxLength={80} onChange={(event) => setForm((value) => ({ ...value, nombre: event.target.value }))} required value={form.nombre} />
+              </label>
+              <label>
+                <span>Apellido</span>
+                <input autoComplete="family-name" maxLength={80} onChange={(event) => setForm((value) => ({ ...value, apellido: event.target.value }))} required value={form.apellido} />
+              </label>
+              <label>
                 <span>{editingId ? "Nueva contraseña" : "Contraseña"}</span>
-                <input autoComplete="new-password" minLength={8} onChange={(event) => setForm((value) => ({ ...value, password: event.target.value }))} required type="password" value={form.password} />
+                <input autoComplete="new-password" minLength={editingId ? 0 : 8} onChange={(event) => setForm((value) => ({ ...value, password: event.target.value }))} required={!editingId} type="password" value={form.password} />
               </label>
               <label>
                 <span>Perfil</span>
@@ -193,7 +213,7 @@ export default function UsersAdmin() {
       {pendingDelete && (
         <Modal description="Esta acción no se puede deshacer." onClose={closeDeleteModal} title="Eliminar usuario" variant={error ? "error" : "warning"}>
           <div className="delete-confirmation">
-            <p>¿Querés eliminar la cuenta <strong>{pendingDelete.usuario}</strong>?</p>
+            <p>¿Querés eliminar la cuenta <strong>{[pendingDelete.nombre, pendingDelete.apellido].filter(Boolean).join(" ") || pendingDelete.usuario}</strong>?</p>
             {error && <p className="users-message users-message-error" role="alert">{error}</p>}
             <div className="user-editor-actions">
               <button className="users-cancel-button" disabled={deleting} onClick={closeDeleteModal} type="button">Cancelar</button>
@@ -216,21 +236,22 @@ export default function UsersAdmin() {
 
       <div aria-busy={loading} className="users-table-scroll">
         <table className="users-table">
-          <thead><tr><th>Usuario</th><th>Perfil</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
+          <thead><tr><th>Nombre y apellido</th><th>Usuario</th><th>Perfil</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
           <tbody>
             {loading ? (
-              <tr><td className="users-empty" colSpan={3}><span className="table-loading" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={17} /> Cargando usuarios...</span></td></tr>
+              <tr><td className="users-empty" colSpan={4}><span className="table-loading" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={17} /> Cargando usuarios...</span></td></tr>
             ) : filteredUsers.length ? filteredUsers.map((user) => (
               <tr key={user.idusuario}>
-                <td><span className="users-name-cell"><span className="users-avatar">{user.usuario.slice(0, 1).toUpperCase()}</span><strong>{user.usuario}</strong></span></td>
+                <td><span className="users-name-cell"><span className="users-avatar">{(user.nombre?.[0] ?? user.usuario[0]).toLocaleUpperCase()}</span><strong>{[user.nombre, user.apellido].filter(Boolean).join(" ") || "Nombre pendiente"}</strong></span></td>
+                <td>{user.usuario}</td>
                 <td><span className={`profile-badge ${user.perfil === "Admin" ? "profile-admin" : "profile-operator"}`}>{user.perfil}</span></td>
                 <td><div className="users-row-actions">
-                  <button aria-label={`Editar ${user.usuario}`} className="users-icon-button" onClick={() => startEdit(user)} title="Editar usuario" type="button"><Pencil size={15} /></button>
+                  <button aria-label={`Editar ${user.nombre || user.usuario}`} className="users-icon-button" onClick={() => startEdit(user)} title="Editar usuario" type="button"><Pencil size={15} /></button>
                   <button aria-label={`Eliminar ${user.usuario}`} className="users-icon-button users-delete-button" onClick={() => { setError(""); setPendingDelete(user); }} title="Eliminar usuario" type="button"><Trash2 size={15} /></button>
                 </div></td>
               </tr>
             )) : (
-              <tr><td className="users-empty" colSpan={3}>{query ? "No hay usuarios que coincidan con la búsqueda." : "Todavía no hay usuarios."}</td></tr>
+              <tr><td className="users-empty" colSpan={4}>{query ? "No hay usuarios que coincidan con la búsqueda." : "Todavía no hay usuarios."}</td></tr>
             )}
           </tbody>
         </table>

@@ -76,6 +76,8 @@ function verifySessionToken(token: string): { user: SessionUser; expiresAt: numb
       payload.sub !== payload.idusuario ||
       typeof payload.idusuario !== "string" ||
       typeof payload.usuario !== "string" ||
+      (payload.nombre !== undefined && typeof payload.nombre !== "string") ||
+      (payload.apellido !== undefined && typeof payload.apellido !== "string") ||
       (payload.perfil !== "Admin" && payload.perfil !== "Operario") ||
       !Number.isInteger(payload.iat) ||
       !Number.isInteger(payload.exp) ||
@@ -88,7 +90,13 @@ function verifySessionToken(token: string): { user: SessionUser; expiresAt: numb
     ) return null;
 
     return {
-      user: { idusuario: payload.idusuario, usuario: payload.usuario, perfil: payload.perfil },
+      user: {
+        idusuario: payload.idusuario,
+        usuario: payload.usuario,
+        ...(payload.nombre ? { nombre: payload.nombre } : {}),
+        ...(payload.apellido ? { apellido: payload.apellido } : {}),
+        perfil: payload.perfil,
+      },
       expiresAt: payload.exp,
       sessionVersion: payload.sessionVersion,
     };

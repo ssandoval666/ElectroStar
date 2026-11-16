@@ -43,6 +43,8 @@ import type { DashboardSummary } from "@/lib/dashboard";
 type LoginUser = {
   idusuario: string;
   usuario: string;
+  nombre?: string;
+  apellido?: string;
   perfil: "Admin" | "Operario";
 };
 
@@ -120,6 +122,12 @@ export default function Home() {
     ? `${user.idusuario}:${user.perfil}:${dashboardRefresh}`
     : "";
   const dashboardLoading = Boolean(dashboardKey && loadedDashboardKey !== dashboardKey);
+  const displayName = user
+    ? [user.nombre, user.apellido].filter(Boolean).join(" ") || user.usuario
+    : "";
+  const userInitials = user
+    ? [user.nombre?.[0], user.apellido?.[0]].filter(Boolean).join("").toLocaleUpperCase() || user.usuario.slice(0, 1).toLocaleUpperCase()
+    : "";
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -410,8 +418,8 @@ export default function Home() {
         </div>
 
         <div className="sidebar-member">
-          <div className="member-avatar">{user.usuario.slice(0, 1).toUpperCase()}</div>
-          {!collapsed && <div className="member-copy"><strong>{user.usuario}</strong><span>{user.perfil}</span></div>}
+          <div className="member-avatar">{userInitials}</div>
+          {!collapsed && <div className="member-copy"><strong>{displayName}</strong><span>{user.perfil}</span></div>}
         </div>
 
         <nav aria-label="Navegación principal" className="sidebar-nav">
@@ -464,7 +472,7 @@ export default function Home() {
             <span className="topbar-date">{new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "2-digit", month: "short", year: "numeric" }).format(new Date()).toLocaleUpperCase("es-AR")}</span>
             <button aria-label="Buscar" className="icon-button" type="button"><Search size={18} /></button>
             <button aria-label="Notificaciones" className="icon-button notification-button" type="button"><Bell size={18} /><span /></button>
-            <div className="topbar-avatar">{user.usuario.slice(0, 1).toUpperCase()}</div>
+            <div className="topbar-avatar">{userInitials}</div>
           </div>
         </header>
 
@@ -515,7 +523,7 @@ export default function Home() {
                   <div>
                     <span className="eyebrow">{nowLabel}</span>
                     <h1>Buen día,</h1>
-                    <h1 className="intro-name">{user.usuario}.</h1>
+                    <h1 className="intro-name">{displayName}.</h1>
                     <p>{user.perfil === "Admin" ? "Vista general de clientes, presupuestos y servicios." : "Tus trabajos asignados y la agenda de servicios."}</p>
                   </div>
                   <button className="outline-action" onClick={() => changePage("calendar", "Agenda")} type="button"><CalendarDays size={16} /><span>Ver calendario</span><ArrowUpRight size={15} /></button>

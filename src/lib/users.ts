@@ -7,6 +7,8 @@ export type UserProfile = "Admin" | "Operario";
 export type StoredUser = {
   idusuario: string;
   usuario: string;
+  nombre?: string;
+  apellido?: string;
   password: string;
   perfil: UserProfile;
   sessionVersion?: number;
@@ -69,6 +71,8 @@ export function toPublicUser(user: StoredUser): PublicUser {
   return {
     idusuario: user.idusuario,
     usuario: user.usuario,
+    ...(user.nombre ? { nombre: user.nombre } : {}),
+    ...(user.apellido ? { apellido: user.apellido } : {}),
     perfil: user.perfil,
   };
 }

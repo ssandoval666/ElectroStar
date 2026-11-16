@@ -8,6 +8,8 @@ const validProfiles: UserProfile[] = ["Admin", "Operario"];
 
 type CreateUserPayload = {
   usuario?: unknown;
+  nombre?: unknown;
+  apellido?: unknown;
   password?: unknown;
   perfil?: unknown;
 };
@@ -41,11 +43,19 @@ export async function POST(request: Request) {
 
   const userPayload = payload as CreateUserPayload;
   const username = typeof userPayload.usuario === "string" ? userPayload.usuario.trim() : "";
+  const firstName = typeof userPayload.nombre === "string" ? userPayload.nombre.trim() : "";
+  const lastName = typeof userPayload.apellido === "string" ? userPayload.apellido.trim() : "";
   const password = typeof userPayload.password === "string" ? userPayload.password : "";
   const profile = userPayload.perfil;
 
-  if (!username || username.length > 64 || password.length < 8 || !validProfiles.includes(profile as UserProfile)) {
-    return Response.json({ message: "Ingresá un usuario, una contraseña de al menos 8 caracteres y un perfil válido." }, { status: 400 });
+  if (
+    !username || username.length > 64 ||
+    !firstName || firstName.length > 80 ||
+    !lastName || lastName.length > 80 ||
+    password.length < 8 ||
+    !validProfiles.includes(profile as UserProfile)
+  ) {
+    return Response.json({ message: "Ingresá usuario, nombre, apellido, contraseña de al menos 8 caracteres y un perfil válido." }, { status: 400 });
   }
 
   try {
@@ -57,6 +67,8 @@ export async function POST(request: Request) {
     const newUser = {
       idusuario: randomUUID(),
       usuario: username,
+      nombre: firstName,
+      apellido: lastName,
       password: await bcrypt.hash(password, 12),
       perfil: profile as UserProfile,
       sessionVersion: 0,
