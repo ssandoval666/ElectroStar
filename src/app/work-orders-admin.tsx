@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { LoaderCircle, Pencil, Search, X } from "lucide-react";
 import type { WorkOrderStatus, WorkOrderView } from "@/lib/work-orders";
 
-type ManagedUser = { idusuario: string; usuario: string; perfil: "Admin" | "Operario" };
+type ManagedUser = { idusuario: string; usuario: string; perfil: string };
 type WorkOrderForm = {
   tareas: string;
   direccion: string;
@@ -52,7 +52,7 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
       const failedIndex = responses.findIndex((response) => !response.ok);
       if (failedIndex >= 0) throw new Error(results[failedIndex].message ?? "No se pudieron cargar las órdenes.");
       setWorkOrders(results[0].items);
-      if (isAdmin) setUsers(results[1].items.filter((user: ManagedUser) => user.perfil === "Operario"));
+      if (isAdmin) setUsers(results[1].items.filter((user: ManagedUser) => user.perfil !== "Admin"));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar las órdenes.");
     } finally {
@@ -73,7 +73,7 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
         if (failedIndex >= 0) throw new Error(results[failedIndex].message ?? "No se pudieron cargar las órdenes.");
         if (!active) return;
         setWorkOrders(results[0].items);
-        if (isAdmin) setUsers(results[1].items.filter((user: ManagedUser) => user.perfil === "Operario"));
+        if (isAdmin) setUsers(results[1].items.filter((user: ManagedUser) => user.perfil !== "Admin"));
       } catch (loadError) {
         if (active) setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar las órdenes.");
       } finally {

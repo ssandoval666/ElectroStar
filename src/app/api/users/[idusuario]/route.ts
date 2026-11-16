@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { getAdminSessionUser } from "@/lib/session";
 import { writeJsonEntity } from "@/lib/drive-json-store";
 import { getUsers, invalidateSessionUsersCache, toPublicUser, type UserProfile } from "@/lib/users";
+import { getProfiles } from "@/lib/profiles";
 
 type RouteContext = { params: Promise<{ idusuario: string }> };
 type UpdateUserPayload = {
@@ -11,8 +12,6 @@ type UpdateUserPayload = {
   password?: unknown;
   perfil?: unknown;
 };
-
-const validProfiles: UserProfile[] = ["Admin", "Operario"];
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   const admin = await getAdminSessionUser();
@@ -39,7 +38,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     !username || username.length > 64 ||
     !firstName || firstName.length > 80 ||
     !lastName || lastName.length > 80 ||
-    !validProfiles.includes(profile as UserProfile)
+    typeof profile !== "string"
   ) {
     return Response.json({ message: "Ingresá usuario, nombre, apellido y un perfil válido." }, { status: 400 });
   }
@@ -48,6 +47,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   try {
+    const validProfiles = await getProfiles();
+    if (!validProfiles.includes(profile)) {
+      return Response.json({ message: "Ingresá usuario, nombre, apellido y un perfil válido." }, { status: 400 });
+    }
     const users = await getUsers();
     const index = users.findIndex((user) => user.idusuario === idusuario);
     if (index === -1) return Response.json({ message: "Usuario no encontrado." }, { status: 404 });

@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
 import { readJsonEntity } from "@/lib/drive-json-store";
-
-export type UserProfile = "Admin" | "Operario";
+import type { UserProfile } from "@/lib/profiles";
+export type { UserProfile } from "@/lib/profiles";
 
 export type StoredUser = {
   idusuario: string;

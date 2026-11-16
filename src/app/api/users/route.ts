@@ -3,8 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getAdminSessionUser } from "@/lib/session";
 import { writeJsonEntity } from "@/lib/drive-json-store";
 import { getUsers, invalidateSessionUsersCache, toPublicUser, type UserProfile } from "@/lib/users";
-
-const validProfiles: UserProfile[] = ["Admin", "Operario"];
+import { getProfiles } from "@/lib/profiles";
 
 type CreateUserPayload = {
   usuario?: unknown;
@@ -53,12 +52,16 @@ export async function POST(request: Request) {
     !firstName || firstName.length > 80 ||
     !lastName || lastName.length > 80 ||
     password.length < 8 ||
-    !validProfiles.includes(profile as UserProfile)
+    typeof profile !== "string"
   ) {
     return Response.json({ message: "Ingresá usuario, nombre, apellido, contraseña de al menos 8 caracteres y un perfil válido." }, { status: 400 });
   }
 
   try {
+    const validProfiles = await getProfiles();
+    if (!validProfiles.includes(profile)) {
+      return Response.json({ message: "Ingresá usuario, nombre, apellido, contraseña de al menos 8 caracteres y un perfil válido." }, { status: 400 });
+    }
     const users = await getUsers();
     if (users.some((user) => user.usuario.toLowerCase() === username.toLowerCase())) {
       return Response.json({ message: "Ese nombre de usuario ya existe." }, { status: 409 });

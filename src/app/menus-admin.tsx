@@ -49,7 +49,7 @@ function containsMenuItem(item: MenuItem, id: string): boolean {
 function moveMenuItem(items: MenuItem[], sourceId: string, targetId: string | null, position: "before" | "after" | "inside"): MenuItem[] | null {
   const source = findMenuItem(items, sourceId);
   const target = targetId ? findMenuItem(items, targetId) : undefined;
-  if (!source || sourceId === "menu-management" || targetId === "menu-management") return null;
+  if (!source || ["menu-management", "profile-management"].includes(sourceId) || (targetId && ["menu-management", "profile-management"].includes(targetId))) return null;
   const movingItem = source;
   if (target && containsMenuItem(source, target.id)) return null;
   if (sourceId === "administration" && (position === "inside" || (target && getParentId(items, target.id) !== null))) return null;
@@ -82,6 +82,7 @@ function moveMenuItem(items: MenuItem[], sourceId: string, targetId: string | nu
 
 export default function MenusAdmin({ onSaved }: { onSaved: (items: MenuItem[]) => void }) {
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [profiles, setProfiles] = useState<MenuProfile[]>(["Admin", "Operario"]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -95,11 +96,15 @@ export default function MenusAdmin({ onSaved }: { onSaved: (items: MenuItem[]) =
 
   useEffect(() => {
     let active = true;
-    fetch("/api/menu")
-      .then(async (response) => {
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message ?? "No se pudo cargar el menú.");
-        if (active) setItems(result.items);
+    Promise.all([fetch("/api/menu"), fetch("/api/profiles")])
+      .then(async ([menuResponse, profilesResponse]) => {
+        const [menuResult, profilesResult] = await Promise.all([menuResponse.json(), profilesResponse.json()]);
+        if (!menuResponse.ok) throw new Error(menuResult.message ?? "No se pudo cargar el menú.");
+        if (!profilesResponse.ok) throw new Error(profilesResult.message ?? "No se pudieron cargar los perfiles.");
+        if (active) {
+          setItems(menuResult.items);
+          setProfiles(profilesResult.items);
+        }
       })
       .catch((loadError: unknown) => {
         if (active) setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el menú.");
@@ -170,7 +175,7 @@ export default function MenusAdmin({ onSaved }: { onSaved: (items: MenuItem[]) =
       return {
         ...current,
         profiles: nextProfiles,
-        destination: selectedDestination?.adminOnly && nextProfiles.includes("Operario") ? null : current.destination,
+        destination: selectedDestination?.adminOnly && nextProfiles.some((item) => item !== "Admin") ? null : current.destination,
       };
     });
   }
@@ -273,7 +278,7 @@ export default function MenusAdmin({ onSaved }: { onSaved: (items: MenuItem[]) =
   const editedNode = editingId ? findMenuItem(items, editingId) : undefined;
   function collectParents(nodes: MenuItem[], depth = 0) {
     for (const item of nodes) {
-      if (item.id !== "menu-management" && (!editedNode || !containsMenuItem(editedNode, item.id))) {
+      if (!["menu-management", "profile-management"].includes(item.id) && (!editedNode || !containsMenuItem(editedNode, item.id))) {
         parentOptions.push({ id: item.id, label: item.label, depth });
       }
       if (item.children) collectParents(item.children, depth + 1);
@@ -285,7 +290,7 @@ export default function MenusAdmin({ onSaved }: { onSaved: (items: MenuItem[]) =
   const availableDestinations = menuDestinations.filter((item) => !item.adminOnly || (form.profiles.length === 1 && form.profiles[0] === "Admin"));
 
   function renderBranch(item: MenuItem, depth: number, parentLabel: string) {
-    const isLocked = item.id === "administration" || item.id === "menu-management";
+    const isLocked = item.id === "administration" || item.id === "menu-management" || item.id === "profile-management";
     const isGroup = item.destination === null || Boolean(item.children?.length);
     return (
       <div className="menu-tree-branch" key={item.id}>
@@ -378,7 +383,7 @@ export default function MenusAdmin({ onSaved }: { onSaved: (items: MenuItem[]) =
             {selectedDestination?.adminOnly && <p className="menu-editor-note">Este destino requiere el perfil Admin.</p>}
             <fieldset className="menu-profile-options">
               <legend>Perfiles con acceso</legend>
-              {(["Admin", "Operario"] as const).map((profile) => (
+              {profiles.map((profile) => (
                 <label key={profile}><input checked={form.profiles.includes(profile)} onChange={() => updateFormProfile(profile)} type="checkbox" />{profile}</label>
               ))}
             </fieldset>

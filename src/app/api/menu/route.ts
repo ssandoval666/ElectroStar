@@ -1,8 +1,8 @@
 import { getAdminSessionUser, getCurrentSessionUser } from "@/lib/session";
 import { initialMenu, menuDestinations, menuIcons, type MenuDestination, type MenuItem, type MenuProfile } from "@/lib/menu";
 import { readJsonEntity, writeJsonEntity } from "@/lib/drive-json-store";
+import { getProfiles } from "@/lib/profiles";
 
-const profiles: MenuProfile[] = ["Admin", "Operario"];
 const destinations = new Set<string>(menuDestinations.map((destination) => destination.value));
 const icons = new Set<string>(menuIcons.map((icon) => icon.value));
 const destinationByValue = new Map<string, (typeof menuDestinations)[number]>(menuDestinations.map((destination) => [destination.value, destination]));
@@ -11,12 +11,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function normalizeMenuItem(value: unknown, depth = 0): MenuItem {
+function normalizeMenuItem(value: unknown, profiles: readonly MenuProfile[], depth = 0): MenuItem {
   if (!isRecord(value) || depth > 6) throw new Error("La estructura del menú no es válida.");
   const childrenValue = value.children;
   if (childrenValue !== undefined && !Array.isArray(childrenValue)) throw new Error("La estructura del menú no es válida.");
   const children = Array.isArray(childrenValue)
-    ? childrenValue.map((child) => normalizeMenuItem(child, depth + 1))
+    ? childrenValue.map((child) => normalizeMenuItem(child, profiles, depth + 1))
     : undefined;
   const id = typeof value.id === "string" ? value.id : "";
   let validProfiles: MenuProfile[];
@@ -64,6 +64,7 @@ function ensureRequiredMenuItems(items: MenuItem[]) {
   let updated = false;
   const requiredAdministration = initialMenu.find((item) => item.id === "administration")!;
   const requiredMenuManagement = requiredAdministration.children!.find((item) => item.id === "menu-management")!;
+  const requiredProfileManagement = requiredAdministration.children!.find((item) => item.id === "profile-management")!;
   let administration = items.find((item) => item.id === "administration");
   if (!administration) {
     administration = structuredClone(requiredAdministration);
@@ -94,10 +95,23 @@ function ensureRequiredMenuItems(items: MenuItem[]) {
     updated = true;
   }
 
+  let profileManagement = administration.children.find((item) => item.id === "profile-management");
+  if (!profileManagement) {
+    profileManagement = structuredClone(requiredProfileManagement);
+    administration.children.push(profileManagement);
+    updated = true;
+  }
+  if (profileManagement.destination !== "profile-management" || profileManagement.profiles.length !== 1 || profileManagement.profiles[0] !== "Admin" || profileManagement.children?.length) {
+    profileManagement.destination = "profile-management";
+    profileManagement.profiles = ["Admin"];
+    delete profileManagement.children;
+    updated = true;
+  }
+
   return updated;
 }
 
-function validateMenu(items: unknown): items is MenuItem[] {
+function validateMenu(items: unknown, profiles: readonly MenuProfile[]): items is MenuItem[] {
   if (!Array.isArray(items) || items.length > 150) return false;
   const ids = new Set<string>();
   const maxDepth = 5;
@@ -131,6 +145,8 @@ function validateMenu(items: unknown): items is MenuItem[] {
       if (target?.adminOnly && itemProfiles.some((profile) => profile !== "Admin")) return false;
       if (destination === "menu-management" && id !== "menu-management") return false;
       if (id === "menu-management" && (destination !== "menu-management" || itemProfiles.length !== 1 || itemProfiles[0] !== "Admin" || (Array.isArray(children) && children.length > 0))) return false;
+      if (destination === "profile-management" && id !== "profile-management") return false;
+      if (id === "profile-management" && (destination !== "profile-management" || itemProfiles.length !== 1 || itemProfiles[0] !== "Admin" || (Array.isArray(children) && children.length > 0))) return false;
       if (id === "administration" && (depth !== 0 || destination !== null || itemProfiles.length !== 1 || itemProfiles[0] !== "Admin")) return false;
       if (children !== undefined && (!Array.isArray(children) || children.length > 150)) return false;
       if (children && children.length > 0 && destination !== null) return false;
@@ -144,7 +160,9 @@ function validateMenu(items: unknown): items is MenuItem[] {
   if (!validateBranch(items, 0)) return false;
   const administration = items.find((item) => isRecord(item) && item.id === "administration");
   if (!administration || !Array.isArray(administration.children)) return false;
-  return administration.children.some((item: unknown) => isRecord(item) && item.id === "menu-management");
+  return ["menu-management", "profile-management"].every((requiredId) =>
+    administration.children.some((item: unknown) => isRecord(item) && item.id === requiredId),
+  );
 }
 
 export async function GET() {
@@ -152,11 +170,12 @@ export async function GET() {
   if (!user) return Response.json({ message: "Sesión no válida." }, { status: 401 });
 
   try {
+    const profiles = await getProfiles();
     const storedItems = await readJsonEntity<unknown>("menu.json", async () => initialMenu);
     if (!Array.isArray(storedItems)) throw new Error("menu.json debe contener una lista de menús.");
-    const items = storedItems.map((item) => normalizeMenuItem(item));
+    const items = storedItems.map((item) => normalizeMenuItem(item, profiles));
     const requiredItemsUpdated = ensureRequiredMenuItems(items);
-    if (!validateMenu(items)) throw new Error("menu.json contiene una estructura de menú no permitida.");
+    if (!validateMenu(items, profiles)) throw new Error("menu.json contiene una estructura de menú no permitida.");
     const normalizedItemsUpdated = JSON.stringify(storedItems) !== JSON.stringify(items);
     if (requiredItemsUpdated || normalizedItemsUpdated) await writeJsonEntity("menu.json", items);
 
@@ -178,7 +197,15 @@ export async function PUT(request: Request) {
     return Response.json({ message: "El cuerpo de la solicitud no es válido." }, { status: 400 });
   }
 
-  if (!isRecord(payload) || !validateMenu(payload.items)) {
+  let profiles: string[];
+  try {
+    profiles = await getProfiles();
+  } catch (error) {
+    console.error("Menu profile read error:", error);
+    return Response.json({ message: "No se pudieron leer los perfiles." }, { status: 503 });
+  }
+
+  if (!isRecord(payload) || !validateMenu(payload.items, profiles)) {
     return Response.json({ message: "El árbol del menú contiene datos inválidos o una estructura no permitida." }, { status: 400 });
   }
 

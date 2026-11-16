@@ -60,8 +60,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       }
       if (usuarioAsignado) {
         const users = await getUsers();
-        if (!users.some((candidate) => candidate.idusuario === usuarioAsignado && candidate.perfil === "Operario")) {
-          return Response.json({ message: "El técnico asignado no existe o no tiene perfil Operario." }, { status: 400 });
+        if (!users.some((candidate) => candidate.idusuario === usuarioAsignado && candidate.perfil !== "Admin")) {
+          return Response.json({ message: "El técnico asignado no existe o tiene un perfil de administración." }, { status: 400 });
         }
       }
       updated = {

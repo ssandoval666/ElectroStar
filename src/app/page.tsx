@@ -37,6 +37,7 @@ import ClientsHistoryAdmin from "@/app/clients-history-admin";
 import WorkOrdersAdmin from "@/app/work-orders-admin";
 import type { WorkOrderStatus } from "@/lib/work-orders";
 import MenusAdmin from "@/app/menus-admin";
+import ProfilesAdmin from "@/app/profiles-admin";
 import type { MenuItem } from "@/lib/menu";
 import type { DashboardSummary } from "@/lib/dashboard";
 import packageJson from "../../package.json";
@@ -46,7 +47,7 @@ type LoginUser = {
   usuario: string;
   nombre?: string;
   apellido?: string;
-  perfil: "Admin" | "Operario";
+  perfil: string;
 };
 
 type LoginFeedback = "idle" | "charging" | "success" | "short";
@@ -478,7 +479,7 @@ export default function Home() {
         </header>
 
         <div className="dashboard-content">
-          {activeItem === "menu-management" && user.perfil === "Admin" ? <MenusAdmin onSaved={setMenuItems} /> : activeItem === "users" && user.perfil === "Admin" ? <UsersAdmin /> : activeItem === "products" && user.perfil === "Admin" ? <ProductsAdmin /> : activeItem === "budgets" && user.perfil === "Admin" ? <BudgetsAdmin /> : activeItem === "clients" && user.perfil === "Admin" ? <ClientsHistoryAdmin /> : activeItem === "work-orders" ? <WorkOrdersAdmin isAdmin={user.perfil === "Admin"} /> : activeItem === "calendar" ? <Calendar /> : (
+          {activeItem === "menu-management" && user.perfil === "Admin" ? <MenusAdmin onSaved={setMenuItems} /> : activeItem === "profile-management" && user.perfil === "Admin" ? <ProfilesAdmin /> : activeItem === "users" && user.perfil === "Admin" ? <UsersAdmin /> : activeItem === "products" && user.perfil === "Admin" ? <ProductsAdmin /> : activeItem === "budgets" && user.perfil === "Admin" ? <BudgetsAdmin /> : activeItem === "clients" && user.perfil === "Admin" ? <ClientsHistoryAdmin /> : activeItem === "work-orders" ? <WorkOrdersAdmin isAdmin={user.perfil === "Admin"} /> : activeItem === "calendar" ? <Calendar /> : (
             <>
           {(() => {
             const now = new Date();

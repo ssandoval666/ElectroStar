@@ -78,7 +78,8 @@ function verifySessionToken(token: string): { user: SessionUser; expiresAt: numb
       typeof payload.usuario !== "string" ||
       (payload.nombre !== undefined && typeof payload.nombre !== "string") ||
       (payload.apellido !== undefined && typeof payload.apellido !== "string") ||
-      (payload.perfil !== "Admin" && payload.perfil !== "Operario") ||
+      typeof payload.perfil !== "string" ||
+      !payload.perfil ||
       !Number.isInteger(payload.iat) ||
       !Number.isInteger(payload.exp) ||
       !Number.isSafeInteger(payload.sessionVersion) ||

@@ -77,6 +77,7 @@ El formato es `tipo(alcance opcional): descripción`, por ejemplo `fix(auth): va
 
 - Las contraseñas se validan contra hashes bcrypt; las respuestas de usuario no exponen el hash.
 - Los perfiles disponibles son `Admin` y `Operario`.
+- El ABM de Perfiles administra `perfiles.json` en Google Drive; si no existe, la aplicación lo inicializa con `Admin` y `Operario`. Los perfiles personalizados habilitan opciones de menú, pero no conceden permisos administrativos de API. Los perfiles protegidos no se pueden renombrar ni eliminar; los perfiles personalizados tampoco se pueden renombrar o eliminar mientras estén asignados a usuarios o menús.
 - El JWT se guarda en una cookie HttpOnly, SameSite Lax y con una duración deslizante de 12 horas. Las peticiones autenticadas renuevan la cookie cuando queda menos de la mitad de su vigencia.
 - La validación consulta una caché en memoria de usuarios con vencimiento de 5 segundos. Los cambios de usuarios hechos por la API invalidan la caché en esa instancia; las demás instancias reflejan el cambio al vencer el plazo.
 - La interfaz vuelve a validar la sesión periódicamente y cierra la sesión tras el tiempo de inactividad configurado.

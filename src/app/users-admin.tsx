@@ -8,7 +8,7 @@ type ManagedUser = {
   usuario: string;
   nombre?: string;
   apellido?: string;
-  perfil: "Admin" | "Operario";
+  perfil: string;
 };
 
 type UserForm = {
@@ -20,9 +20,11 @@ type UserForm = {
 };
 
 const emptyForm: UserForm = { usuario: "", nombre: "", apellido: "", password: "", perfil: "Operario" };
+const builtInProfiles = ["Admin", "Operario"];
 
 export default function UsersAdmin() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [profiles, setProfiles] = useState<string[]>(builtInProfiles);
   const [query, setQuery] = useState("");
   const [form, setForm] = useState<UserForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -51,11 +53,15 @@ export default function UsersAdmin() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/users")
-      .then(async (response) => {
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message ?? "No se pudo cargar usuarios.");
-        if (active) setUsers(result.items);
+    Promise.all([fetch("/api/users"), fetch("/api/profiles")])
+      .then(async ([usersResponse, profilesResponse]) => {
+        const [usersResult, profilesResult] = await Promise.all([usersResponse.json(), profilesResponse.json()]);
+        if (!usersResponse.ok) throw new Error(usersResult.message ?? "No se pudo cargar usuarios.");
+        if (!profilesResponse.ok) throw new Error(profilesResult.message ?? "No se pudieron cargar los perfiles.");
+        if (active) {
+          setUsers(usersResult.items);
+          setProfiles(profilesResult.items);
+        }
       })
       .catch((loadError: unknown) => {
         if (active) setError(loadError instanceof Error ? loadError.message : "No se pudo cargar usuarios.");
@@ -195,9 +201,8 @@ export default function UsersAdmin() {
               </label>
               <label>
                 <span>Perfil</span>
-                <select onChange={(event) => setForm((value) => ({ ...value, perfil: event.target.value as ManagedUser["perfil"] }))} required value={form.perfil}>
-                  <option value="Admin">Admin</option>
-                  <option value="Operario">Operario</option>
+                <select onChange={(event) => setForm((value) => ({ ...value, perfil: event.target.value }))} required value={form.perfil}>
+                  {profiles.map((profile) => <option key={profile} value={profile}>{profile}</option>)}
                 </select>
               </label>
             </div>
