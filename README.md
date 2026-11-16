@@ -58,6 +58,21 @@ npm start
 
 `npm run start` sirve la compilación de producción generada por `npm run build`.
 
+## Versionado y releases
+
+Los commits de `main` usan Conventional Commits. Release Please analiza los commits desde el estado inicial de esta configuración y abre o actualiza un PR de release cuando encuentra cambios que requieren versión. El PR actualiza `package.json`, `package-lock.json` y `CHANGELOG.md`; al integrarlo, crea el tag y la publicación de GitHub. La versión del pie del menú se lee de `package.json`.
+
+| Tipo de commit | Ejemplo | Aumento |
+|---|---|---|
+| `fix:` | `fix: corregir validacion del presupuesto` | Patch (`0.1.0` → `0.1.1`) |
+| `perf:` | `perf: reducir lecturas de ordenes` | Patch |
+| `feat:` | `feat: agregar historial de clientes` | Minor (`0.1.0` → `0.2.0`) |
+| Cambio incompatible | `feat!: cambiar el formato de la API` o pie `BREAKING CHANGE: ...` | Breaking; antes de `1.0.0`, aumenta minor |
+
+Prefijos como `docs:`, `test:`, `refactor:`, `chore:`, `ci:`, `build:` y `style:` no generan por sí solos un release. Si alguno incluye un cambio incompatible, agregá `!` después del tipo o un pie `BREAKING CHANGE:`.
+
+El formato es `tipo(alcance opcional): descripción`, por ejemplo `fix(auth): validar expiracion de sesion`. En GitHub debe estar habilitada la opción para que GitHub Actions pueda crear pull requests; el workflow propone la versión y no la publica hasta que se integre el PR de release.
+
 ## Inicio de sesión y permisos
 
 - Las contraseñas se validan contra hashes bcrypt; las respuestas de usuario no exponen el hash.

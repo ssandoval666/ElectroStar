@@ -39,6 +39,7 @@ import type { WorkOrderStatus } from "@/lib/work-orders";
 import MenusAdmin from "@/app/menus-admin";
 import type { MenuItem } from "@/lib/menu";
 import type { DashboardSummary } from "@/lib/dashboard";
+import packageJson from "../../package.json";
 
 type LoginUser = {
   idusuario: string;
@@ -458,7 +459,7 @@ export default function Home() {
 
         <div className="sidebar-bottom">
           <button className="nav-item logout-item" onClick={() => setLogoutConfirmationOpen(true)} title="Cerrar sesión" type="button"><LogOut size={18} />{!collapsed && <span>Cerrar sesión</span>}</button>
-          {!collapsed && <div className="sidebar-footer-mark"><span>ENERGÍA QUE NOS UNE</span><span>v1.0.0 · 2026</span></div>}
+          {!collapsed && <div className="sidebar-footer-mark"><span>ENERGÍA QUE NOS UNE</span><span>v{packageJson.version} · {new Date().getFullYear()}</span></div>}
         </div>
       </aside>
 

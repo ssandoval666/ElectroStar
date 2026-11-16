@@ -1,0 +1,11 @@
+{
+  "bootstrap-sha": "3fdb58e7aa5a524aa2f850e70350f905c327c35a",
+  "release-type": "node",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "electrostar",
+      "bump-minor-pre-major": true
+    }
+  }
+}
