@@ -1,4 +1,4 @@
-# ElectroStar
+# Con100ciaElectrica
 
 Portal de gestión para un gremio de electricistas. La aplicación incluye acceso por perfiles, catálogo de productos y servicios, presupuestos, clientes, órdenes de trabajo y agenda.
 

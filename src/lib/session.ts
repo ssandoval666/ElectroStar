@@ -2,10 +2,10 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { getSessionUserById, type PublicUser } from "@/lib/users";
 
-export const SESSION_COOKIE_NAME = "electrostar_session";
+export const SESSION_COOKIE_NAME = "con100ciaelectrica_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 12;
 const SESSION_REFRESH_THRESHOLD_SECONDS = SESSION_MAX_AGE_SECONDS / 2;
-const SESSION_ISSUER = "electrostar";
+const SESSION_ISSUER = "con100ciaelectrica";
 
 export type SessionUser = PublicUser;
 type SessionPayload = SessionUser & {

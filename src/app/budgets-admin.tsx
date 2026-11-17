@@ -486,7 +486,7 @@ export default function BudgetsAdmin() {
               <button aria-label="Cerrar vista" className="users-icon-button" onClick={() => setViewingBudget(null)} type="button"><X size={18} /></button>
             </header>
             <div className="budget-view-content">
-              <div className="budget-view-brand"><strong>ELECTROSTAR</strong><span>PROPUESTA COMERCIAL</span></div>
+              <div className="budget-view-brand"><strong>CON100CIAELECTRICA</strong><span>PROPUESTA COMERCIAL</span></div>
               <div className="budget-view-info">
                 <div><span>CLIENTE</span><strong>{client ? `${client.nombre} ${client.apellido}` : "Cliente no disponible"}</strong><small>{client?.telefono ?? ""}</small></div>
                 <div><span>FECHA DEL PRESUPUESTO</span><strong>{dateFormatter.format(new Date(`${viewingBudget.fecha}T00:00:00Z`))}</strong><small>N° {viewingBudget.idpresupuesto.slice(0, 8).toUpperCase()}</small></div>
@@ -499,7 +499,7 @@ export default function BudgetsAdmin() {
                 </tr>)}</tbody>
                 <tfoot><tr><td colSpan={3}>TOTAL DEL PRESUPUESTO</td><td>{currencyFormatter.format(viewingBudget.total)}</td></tr></tfoot>
               </table></div>
-              <footer className="budget-view-footer"><span>Gracias por confiar en ElectroStar.</span><button className="users-save-button" disabled={exportingId === viewingBudget.idpresupuesto} onClick={() => void exportBudget(viewingBudget)} type="button">{exportingId === viewingBudget.idpresupuesto ? <LoaderCircle aria-hidden="true" className="loading-spinner" size={15} /> : <Download size={15} />}{exportingId === viewingBudget.idpresupuesto ? "Preparando PDF..." : "Exportar a PDF"}</button></footer>
+              <footer className="budget-view-footer"><span>Gracias por confiar en Con100ciaElectrica.</span><button className="users-save-button" disabled={exportingId === viewingBudget.idpresupuesto} onClick={() => void exportBudget(viewingBudget)} type="button">{exportingId === viewingBudget.idpresupuesto ? <LoaderCircle aria-hidden="true" className="loading-spinner" size={15} /> : <Download size={15} />}{exportingId === viewingBudget.idpresupuesto ? "Preparando PDF..." : "Exportar a PDF"}</button></footer>
             </div>
           </section>
         </div>;

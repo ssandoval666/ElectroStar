@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ElectroStar | Portal de afiliados",
+  title: "Con100ciaElectrica | Portal de afiliados",
   description: "Servicios, formación y oportunidades para la comunidad de electricistas.",
 };
 

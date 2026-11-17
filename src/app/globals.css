@@ -273,6 +273,9 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .services-proposals-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
 .services-proposals-heading .budget-section-heading { flex: 1; margin: 0; }
 .services-proposals-heading .users-save-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 13px; white-space: nowrap; }
+.services-catalog-scroll { max-width: 100%; height: min(62vh, 560px); overflow: auto; overscroll-behavior: contain; border: 1px solid #e3e8e2; border-radius: 4px; background: #fff; }
+.services-catalog-scroll:focus-visible { outline: 2px solid #82a88b; outline-offset: 2px; }
+.services-catalog-scroll .users-table th { position: sticky; top: 0; z-index: 1; }
 .services-proposals-scroll { max-width: 100%; max-height: min(62vh, 560px); overflow: auto; overscroll-behavior: contain; border: 1px solid #e3e8e2; border-radius: 4px; background: #fff; }
 .services-proposals-scroll:focus-visible { outline: 2px solid #82a88b; outline-offset: 2px; }
 .services-proposals-scroll .users-table { width: 1055px; min-width: 1055px; table-layout: fixed; }

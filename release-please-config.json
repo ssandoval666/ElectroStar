@@ -4,7 +4,7 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "package-name": "electrostar",
+      "package-name": "con100ciaelectrica",
       "bump-minor-pre-major": true
     }
   }

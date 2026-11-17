@@ -324,7 +324,7 @@ export default function Home() {
         <section className="login-panel">
           <div className="login-form-wrap">
             <div className="form-heading">
-              <span className="eyebrow">PORTAL ELECTROSTAR</span>
+              <span className="eyebrow">PORTAL CON100CIAELECTRICA</span>
               <h2>Tu espacio,</h2>
               <h2 className="heading-light">más cerca.</h2>
               <p>Ingresá para gestionar tus servicios y beneficios.</p>
@@ -391,7 +391,7 @@ export default function Home() {
           <div className="login-panel-foot">
             <span>¿Necesitás ayuda?</span>
             <a href="mailto:ayuda@electrostar.org">Contactá con soporte</a>
-            <span className="copyright">© 2026 ElectroStar</span>
+            <span className="copyright">© 2026 Con100ciaElectrica</span>
           </div>
         </section>
       </main>
@@ -592,7 +592,7 @@ export default function Home() {
             );
           })()}
 
-          <footer className="dashboard-footer"><span>HECHO PARA QUIENES MANTIENEN TODO EN MARCHA.</span><span>ELECTROSTAR <span className="footer-star">✳</span> 2026</span></footer>
+          <footer className="dashboard-footer"><span>HECHO PARA QUIENES MANTIENEN TODO EN MARCHA.</span><span>CON100CIAELECTRICA <span className="footer-star">✳</span> 2026</span></footer>
             </>
           )}
         </div>
@@ -610,7 +610,7 @@ export default function Home() {
           tabIndex={-1}
         >
           <header className="users-modal-heading modal-heading-warning">
-            <div><h2 id="logout-confirmation-title">¿Cerrar sesión?</h2><p id="logout-confirmation-description">Vas a salir de tu cuenta de ElectroStar.</p></div>
+            <div><h2 id="logout-confirmation-title">¿Cerrar sesión?</h2><p id="logout-confirmation-description">Vas a salir de tu cuenta de Con100ciaElectrica.</p></div>
           </header>
           <div className="delete-confirmation">
             <div className="user-editor-actions">
@@ -628,7 +628,7 @@ function Brand({ light = false, compact = false }: { light?: boolean; compact?: 
   return (
     <div className={`brand ${light ? "brand-light" : ""}`}>
       <span className="brand-symbol"><Zap size={19} fill="currentColor" /></span>
-      {!compact && <span className="brand-wordmark">ELECTRO<span>STAR</span></span>}
+      {!compact && <span className="brand-wordmark">CON100CIA<span>ELECTRICA</span></span>}
     </div>
   );
 }

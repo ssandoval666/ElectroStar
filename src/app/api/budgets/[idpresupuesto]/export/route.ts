@@ -33,7 +33,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     const client = clients.find((item) => item.idclientes === budget.idclientes);
     if (!client) return Response.json({ message: "No se encontró el cliente del presupuesto." }, { status: 404 });
 
-    const pdf = new PDFDocument({ size: "A4", margin: 48, info: { Title: `Presupuesto ${budget.idpresupuesto}`, Author: "ElectroStar", Subject: budget.descripcion } });
+    const pdf = new PDFDocument({ size: "A4", margin: 48, info: { Title: `Presupuesto ${budget.idpresupuesto}`, Author: "Con100ciaElectrica", Subject: budget.descripcion } });
     const pdfBuffer = new Promise<Buffer>((resolve, reject) => {
       const chunks: Buffer[] = [];
       pdf.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -77,14 +77,14 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
     function drawContinuationHeader() {
       pdf.roundedRect(margin, 42, contentWidth, 42, 4).fill(colors.deepGreen);
-      pdf.font("Helvetica-Bold").fontSize(11).fillColor(colors.white).text("ELECTROSTAR", margin + 14, 54);
+      pdf.font("Helvetica-Bold").fontSize(11).fillColor(colors.white).text("CON100CIAELECTRICA", margin + 14, 54);
       pdf.font("Helvetica").fontSize(9).fillColor("#DCE9D6").text(`Presupuesto N° ${shortId}`, margin + contentWidth - 180, 56, { width: 166, align: "right" });
       return drawTableHeader(100);
     }
 
     pdf.roundedRect(margin, 48, contentWidth, 100, 6).fill(colors.deepGreen);
     pdf.rect(margin, 48, 7, 100).fill(colors.lime);
-    pdf.font("Helvetica-Bold").fontSize(20).fillColor(colors.white).text("ELECTROSTAR", margin + 22, 68);
+    pdf.font("Helvetica-Bold").fontSize(20).fillColor(colors.white).text("CON100CIAELECTRICA", margin + 22, 68);
     pdf.font("Helvetica").fontSize(9).fillColor("#DCE9D6").text("ENERGÍA QUE NOS UNE", margin + 23, 96);
     pdf.font("Helvetica-Bold").fontSize(13).fillColor(colors.lime).text("PRESUPUESTO", margin + 300, 70, { width: contentWidth - 322, align: "right" });
     pdf.font("Helvetica").fontSize(9).fillColor(colors.white).text(`N° ${shortId}  ·  ${formatDate}`, margin + 250, 96, { width: contentWidth - 272, align: "right" });
@@ -145,7 +145,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     pdf.roundedRect(margin + contentWidth - 225, y, 225, 58, 4).fill(colors.light).stroke(colors.line);
     pdf.font("Helvetica-Bold").fontSize(9).fillColor(colors.muted).text("TOTAL DEL PRESUPUESTO", margin + contentWidth - 211, y + 13, { width: 197 });
     pdf.font("Helvetica-Bold").fontSize(17).fillColor(colors.deepGreen).text(currencyFormatter.format(budget.total), margin + contentWidth - 211, y + 30, { width: 197 });
-    pdf.font("Helvetica").fontSize(8).fillColor(colors.muted).text("Gracias por confiar en ElectroStar.", margin, pageHeight - 47, { width: contentWidth, align: "center" });
+    pdf.font("Helvetica").fontSize(8).fillColor(colors.muted).text("Gracias por confiar en Con100ciaElectrica.", margin, pageHeight - 47, { width: contentWidth, align: "center" });
 
     pdf.end();
     const buffer = await pdfBuffer;

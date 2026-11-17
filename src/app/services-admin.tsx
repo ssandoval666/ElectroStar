@@ -282,7 +282,7 @@ export default function ServicesAdmin() {
         <label className="users-search"><Search size={16} /><input onChange={(event) => setQuery(event.target.value)} placeholder="Buscar servicio" value={query} /></label>
         <span>{services.length} {services.length === 1 ? "servicio" : "servicios"}</span>
       </div>
-      <div aria-busy={loading} className="users-table-scroll">
+      <div aria-busy={loading} aria-label="Catálogo de servicios" className="services-catalog-scroll" role="region" tabIndex={0}>
         <table className="users-table">
           <thead><tr><th>Servicio</th><th>Categoría</th><th>Unidad</th><th>Valor</th><th>Historial</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
           <tbody>
