@@ -15,6 +15,7 @@ export type WorkOrder = {
   usuario_asignado: string;
   estado: WorkOrderStatus;
   materiales: BudgetRecord["productos"];
+  servicios?: NonNullable<BudgetRecord["servicios"]>;
   fecha_creacion: string;
   fecha_modificacion: string;
   usuario_modificacion: string;
@@ -55,6 +56,7 @@ function createWorkOrderForBudget(budget: BudgetRecord, userId: string): WorkOrd
     usuario_asignado: "",
     estado: "pendiente",
     materiales: budget.productos.map((item) => ({ ...item })),
+    servicios: (budget.servicios ?? []).map((item) => ({ ...item })),
     fecha_creacion: now,
     fecha_modificacion: now,
     usuario_modificacion: userId,

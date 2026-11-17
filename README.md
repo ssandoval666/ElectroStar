@@ -87,6 +87,14 @@ El formato es `tipo(alcance opcional): descripción`, por ejemplo `fix(auth): va
 
 ## Funcionalidades
 
+### Servicios y actualización de valores AAIERIC
+
+Los servicios se guardan en `servicios.json` como catálogo, historial de valores, estado de la última consulta y propuestas pendientes. El workflow semanal de GitHub Actions consulta el PDF de AAIERIC los lunes a las 09:00 de Argentina; si cambia, extrae los renglones detectables y crea propuestas, sin modificar precios vigentes hasta que un Admin las apruebe. La unidad extraída combina los encabezados de grupo, el encabezado de columna asociado al valor y, cuando existe, la unidad explícita del PDF (por ejemplo, `Cable subterráneo - Tierra` o `Tableros - TP Monofásicos - $ x ud.`), para distinguir filas con descripciones iguales en distintas secciones. La URL puede configurarse con `AAIERIC_SERVICES_PDF_URL`.
+
+Para habilitar el workflow, agregá en GitHub Actions el variable de repositorio `APP_BASE_URL` con la URL pública de la aplicación y el secret `CRON_SECRET`, que debe coincidir con la variable de entorno `CRON_SECRET` del despliegue. Desde Administración → Servicios, **Consultar AAIERIC** detecta cambios en el documento y **Forzar comparación** vuelve a comparar sus valores aunque el PDF no haya cambiado, actualizando también las propuestas pendientes para reflejar los encabezados actuales. La lista para comparar y revisar se abre en un modal únicamente después de iniciar una de estas acciones. El botón **Aceptar todos** guarda las propuestas compatibles en `servicios.json` y deja pendientes, con sus motivos, las ambiguas o conflictivas para confirmación manual. La extracción automática depende del diseño del PDF; revisá siempre descripción, unidad y precio antes de aprobar.
+
+Los presupuestos admiten secciones separadas de productos y servicios. Las líneas guardan una copia de la descripción y el precio al momento de generar el presupuesto, por lo que las actualizaciones futuras no cambian cotizaciones existentes.
+
 ### Productos y servicios
 
 El perfil `Admin` puede crear, consultar y editar productos y servicios. Antes de borrar un producto, la aplicación consulta sus referencias y muestra los presupuestos y órdenes de trabajo que lo utilizan. Si existe alguna referencia, el borrado se bloquea tanto en la interfaz como en la API.

@@ -19,9 +19,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   const { idpresupuesto } = await params;
   try {
-    const { input, productos } = await createBudgetUpdate(payload);
-    if (!input) return Response.json({ message: "Completá cliente, descripción, fecha y al menos un producto con cantidad válida." }, { status: 400 });
-    if (!productos) return Response.json({ message: "Uno de los productos seleccionados ya no existe." }, { status: 400 });
+    const { input, lines } = await createBudgetUpdate(payload);
+    if (!input) return Response.json({ message: "Completá cliente, descripción, fecha y al menos un producto o servicio con cantidad válida." }, { status: 400 });
+    if (!lines) return Response.json({ message: "Uno de los productos o servicios seleccionados ya no existe." }, { status: 400 });
 
     const clients = await readJsonEntity<{ idclientes: string }[]>("clientes.json", async () => []);
     if (!clients.some((client) => client.idclientes === input.idclientes)) {
@@ -35,13 +35,15 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       return Response.json({ message: "Un presupuesto aceptado no se puede modificar; creá uno nuevo para una revisión." }, { status: 409 });
     }
 
+    const total = [...lines.productos, ...lines.servicios].reduce((sum, item) => sum + item.valor_total, 0);
     const budget: BudgetRecord = {
       ...budgets[index],
       idclientes: input.idclientes,
       descripcion: input.descripcion,
       fecha: input.fecha,
-      productos,
-      total: Math.round(productos.reduce((sum, item) => sum + item.valor_total, 0) * 100) / 100,
+      productos: lines.productos,
+      servicios: lines.servicios,
+      total: Math.round(total * 100) / 100,
       estado: input.estado ?? budgets[index].estado ?? "borrador",
       ...(input.vigente_hasta !== undefined
         ? input.vigente_hasta ? { vigente_hasta: input.vigente_hasta } : {}

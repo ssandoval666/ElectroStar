@@ -49,6 +49,20 @@ export async function GET(_request: Request, { params }: RouteContext) {
     const tableHeaders = ["N°", "PRODUCTO / SERVICIO", "CANT.", "VALOR UNITARIO", "SUBTOTAL"];
     const formatDate = dateFormatter.format(new Date(`${budget.fecha}T00:00:00.000Z`));
     const shortId = budget.idpresupuesto.slice(0, 8).toUpperCase();
+    const lines = [
+      ...budget.productos.map((item) => ({
+        descripcion: item.descripcion_producto,
+        cantidad: item.cantidad,
+        valorUnitario: item.valor_unitario,
+        valorTotal: item.valor_total,
+      })),
+      ...(budget.servicios ?? []).map((item) => ({
+        descripcion: `${item.descripcion_servicio} (${item.unidad_servicio})`,
+        cantidad: item.cantidad,
+        valorUnitario: item.valor_unitario,
+        valorTotal: item.valor_total,
+      })),
+    ];
 
     function drawTableHeader(y: number) {
       pdf.roundedRect(margin, y, contentWidth, 30, 3).fill(colors.deepGreen);
@@ -97,11 +111,11 @@ export async function GET(_request: Request, { params }: RouteContext) {
     y += clientCardHeight + 22;
     y = drawTableHeader(y);
 
-    for (let index = 0; index < budget.productos.length; index += 1) {
-      const product = budget.productos[index];
+    for (let index = 0; index < lines.length; index += 1) {
+      const product = lines[index];
       const descriptionWidth = tableColumns[1] - 16;
       pdf.font("Helvetica").fontSize(9);
-      const descriptionHeight = pdf.heightOfString(product.descripcion_producto, { width: descriptionWidth, lineGap: 2 });
+      const descriptionHeight = pdf.heightOfString(product.descripcion, { width: descriptionWidth, lineGap: 2 });
       const rowHeight = Math.max(34, descriptionHeight + 16);
       if (y + rowHeight > pageHeight - 92) y = drawContinuationHeader();
 
@@ -110,10 +124,10 @@ export async function GET(_request: Request, { params }: RouteContext) {
       let x = margin;
       const rowValues = [
         String(index + 1),
-        product.descripcion_producto,
+        product.descripcion,
         new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(product.cantidad),
-        currencyFormatter.format(product.valor_unitario),
-        currencyFormatter.format(product.valor_total),
+        currencyFormatter.format(product.valorUnitario),
+        currencyFormatter.format(product.valorTotal),
       ];
       rowValues.forEach((value, columnIndex) => {
         pdf.font(columnIndex === 4 ? "Helvetica-Bold" : "Helvetica").fontSize(9).fillColor(columnIndex === 4 ? colors.ink : "#46584C")

@@ -49,7 +49,7 @@ function containsMenuItem(item: MenuItem, id: string): boolean {
 function moveMenuItem(items: MenuItem[], sourceId: string, targetId: string | null, position: "before" | "after" | "inside"): MenuItem[] | null {
   const source = findMenuItem(items, sourceId);
   const target = targetId ? findMenuItem(items, targetId) : undefined;
-  if (!source || ["menu-management", "profile-management"].includes(sourceId) || (targetId && ["menu-management", "profile-management"].includes(targetId))) return null;
+  if (!source || ["services", "menu-management", "profile-management"].includes(sourceId) || (targetId && ["services", "menu-management", "profile-management"].includes(targetId))) return null;
   const movingItem = source;
   if (target && containsMenuItem(source, target.id)) return null;
   if (sourceId === "administration" && (position === "inside" || (target && getParentId(items, target.id) !== null))) return null;
@@ -278,7 +278,7 @@ export default function MenusAdmin({ onSaved }: { onSaved: (items: MenuItem[]) =
   const editedNode = editingId ? findMenuItem(items, editingId) : undefined;
   function collectParents(nodes: MenuItem[], depth = 0) {
     for (const item of nodes) {
-      if (!["menu-management", "profile-management"].includes(item.id) && (!editedNode || !containsMenuItem(editedNode, item.id))) {
+      if (!["services", "menu-management", "profile-management"].includes(item.id) && (!editedNode || !containsMenuItem(editedNode, item.id))) {
         parentOptions.push({ id: item.id, label: item.label, depth });
       }
       if (item.children) collectParents(item.children, depth + 1);
@@ -290,7 +290,7 @@ export default function MenusAdmin({ onSaved }: { onSaved: (items: MenuItem[]) =
   const availableDestinations = menuDestinations.filter((item) => !item.adminOnly || (form.profiles.length === 1 && form.profiles[0] === "Admin"));
 
   function renderBranch(item: MenuItem, depth: number, parentLabel: string) {
-    const isLocked = item.id === "administration" || item.id === "menu-management" || item.id === "profile-management";
+    const isLocked = item.id === "administration" || item.id === "menu-management" || item.id === "profile-management" || item.id === "services";
     const isGroup = item.destination === null || Boolean(item.children?.length);
     return (
       <div className="menu-tree-branch" key={item.id}>

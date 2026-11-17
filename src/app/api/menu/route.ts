@@ -63,6 +63,7 @@ function filterMenu(items: MenuItem[], profile: MenuProfile): MenuItem[] {
 function ensureRequiredMenuItems(items: MenuItem[]) {
   let updated = false;
   const requiredAdministration = initialMenu.find((item) => item.id === "administration")!;
+  const requiredServices = requiredAdministration.children!.find((item) => item.id === "services")!;
   const requiredMenuManagement = requiredAdministration.children!.find((item) => item.id === "menu-management")!;
   const requiredProfileManagement = requiredAdministration.children!.find((item) => item.id === "profile-management")!;
   let administration = items.find((item) => item.id === "administration");
@@ -79,6 +80,19 @@ function ensureRequiredMenuItems(items: MenuItem[]) {
   }
   if (!administration.children) {
     administration.children = [];
+    updated = true;
+  }
+
+  let services = administration.children.find((item) => item.id === "services");
+  if (!services) {
+    services = structuredClone(requiredServices);
+    administration.children.push(services);
+    updated = true;
+  }
+  if (services.destination !== "services" || services.profiles.length !== 1 || services.profiles[0] !== "Admin" || services.children?.length) {
+    services.destination = "services";
+    services.profiles = ["Admin"];
+    delete services.children;
     updated = true;
   }
 
@@ -143,6 +157,8 @@ function validateMenu(items: unknown, profiles: readonly MenuProfile[]): items i
 
       const target = destination === null ? null : destinationByValue.get(destination as MenuDestination);
       if (target?.adminOnly && itemProfiles.some((profile) => profile !== "Admin")) return false;
+      if (destination === "services" && id !== "services") return false;
+      if (id === "services" && (destination !== "services" || itemProfiles.length !== 1 || itemProfiles[0] !== "Admin" || (Array.isArray(children) && children.length > 0))) return false;
       if (destination === "menu-management" && id !== "menu-management") return false;
       if (id === "menu-management" && (destination !== "menu-management" || itemProfiles.length !== 1 || itemProfiles[0] !== "Admin" || (Array.isArray(children) && children.length > 0))) return false;
       if (destination === "profile-management" && id !== "profile-management") return false;
@@ -160,7 +176,7 @@ function validateMenu(items: unknown, profiles: readonly MenuProfile[]): items i
   if (!validateBranch(items, 0)) return false;
   const administration = items.find((item) => isRecord(item) && item.id === "administration");
   if (!administration || !Array.isArray(administration.children)) return false;
-  return ["menu-management", "profile-management"].every((requiredId) =>
+  return ["services", "menu-management", "profile-management"].every((requiredId) =>
     administration.children.some((item: unknown) => isRecord(item) && item.id === requiredId),
   );
 }

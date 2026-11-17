@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { getAdminSessionUser } from "@/lib/session";
 import { readJsonEntity, writeJsonEntity } from "@/lib/drive-json-store";
 import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
-import { buildBudgetProducts, parseBudget } from "@/lib/budgets-api";
+import { buildBudgetLines, parseBudget } from "@/lib/budgets-api";
 import { ensureWorkOrderForBudget } from "@/lib/work-orders";
 
 export async function GET() {
@@ -30,24 +30,26 @@ export async function POST(request: Request) {
   }
 
   const input = parseBudget(payload);
-  if (!input) return Response.json({ message: "Completá cliente, descripción, fecha y al menos un producto con cantidad válida." }, { status: 400 });
+  if (!input) return Response.json({ message: "Completá cliente, descripción, fecha y al menos un producto o servicio con cantidad válida." }, { status: 400 });
 
   try {
     const clients = await readJsonEntity<ClientRecord[]>("clientes.json", async () => []);
     if (!clients.some((client) => client.idclientes === input.idclientes)) {
       return Response.json({ message: "El cliente seleccionado no existe." }, { status: 400 });
     }
-    const productos = await buildBudgetProducts(input);
-    if (!productos) return Response.json({ message: "Uno de los productos seleccionados ya no existe." }, { status: 400 });
+    const lines = await buildBudgetLines(input);
+    if (!lines) return Response.json({ message: "Uno de los productos o servicios seleccionados ya no existe." }, { status: 400 });
 
     const items = await readJsonEntity<BudgetRecord[]>("presupuestos.json", async () => []);
+    const total = [...lines.productos, ...lines.servicios].reduce((sum, item) => sum + item.valor_total, 0);
     const budget: BudgetRecord = {
       idpresupuesto: randomUUID(),
       idclientes: input.idclientes,
       descripcion: input.descripcion,
       fecha: input.fecha,
-      productos,
-      total: Math.round(productos.reduce((sum, item) => sum + item.valor_total, 0) * 100) / 100,
+      productos: lines.productos,
+      servicios: lines.servicios,
+      total: Math.round(total * 100) / 100,
       estado: input.estado ?? "borrador",
       ...(input.vigente_hasta ? { vigente_hasta: input.vigente_hasta } : {}),
       fecha_modificacion: new Date().toISOString(),

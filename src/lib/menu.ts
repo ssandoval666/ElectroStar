@@ -7,6 +7,7 @@ export type MenuDestination =
   | "clients"
   | "users"
   | "products"
+  | "services"
   | "menu-management"
   | "profile-management";
 
@@ -36,6 +37,7 @@ export const menuDestinations: { value: MenuDestination; label: string; adminOnl
   { value: "clients", label: "Clientes", adminOnly: true },
   { value: "users", label: "Usuarios", adminOnly: true },
   { value: "products", label: "Productos", adminOnly: true },
+  { value: "services", label: "Servicios", adminOnly: true },
   { value: "menu-management", label: "Administración de menús", adminOnly: true },
   { value: "profile-management", label: "Administración de perfiles", adminOnly: true },
 ];
@@ -54,6 +56,7 @@ export const initialMenu: MenuItem[] = [
     children: [
       { id: "users", label: "Usuarios", icon: "members", profiles: ["Admin"], destination: "users" },
       { id: "products", label: "Productos", icon: "products", profiles: ["Admin"], destination: "products" },
+      { id: "services", label: "Servicios", icon: "briefcase", profiles: ["Admin"], destination: "services" },
       { id: "menu-management", label: "Menús", icon: "settings", profiles: ["Admin"], destination: "menu-management" },
       { id: "profile-management", label: "Perfiles", icon: "settings", profiles: ["Admin"], destination: "profile-management" },
     ],

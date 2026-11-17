@@ -3,6 +3,7 @@
 import { Download, Eye, FileDown, LoaderCircle, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { BudgetRecord, BudgetStatus, ClientRecord } from "@/lib/budgets";
+import type { ServiceRecord } from "@/lib/services";
 
 type Product = {
   idproducto: string;
@@ -13,6 +14,7 @@ type Product = {
 };
 
 type BudgetLineInput = { idproducto: string; cantidad: number };
+type BudgetServiceInput = { idservicio: string; cantidad: number };
 type ContactMode = "existing" | "new";
 type BudgetForm = {
   idclientes: string;
@@ -24,6 +26,7 @@ type BudgetForm = {
   estado: BudgetStatus;
   vigente_hasta: string;
   productos: BudgetLineInput[];
+  servicios: BudgetServiceInput[];
 };
 
 const budgetStatusLabels: Record<BudgetStatus, string> = {
@@ -42,6 +45,7 @@ const emptyForm = (): BudgetForm => ({
   estado: "borrador",
   vigente_hasta: new Date(Date.now() + 15 * 86_400_000).toISOString().slice(0, 10),
   productos: [],
+  servicios: [],
 });
 
 const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -51,6 +55,7 @@ export default function BudgetsAdmin() {
   const [budgets, setBudgets] = useState<BudgetRecord[]>([]);
   const [clients, setClients] = useState<ClientRecord[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [services, setServices] = useState<ServiceRecord[]>([]);
   const [query, setQuery] = useState("");
   const [clientQuery, setClientQuery] = useState("");
   const [contactMode, setContactMode] = useState<ContactMode>("existing");
@@ -75,6 +80,7 @@ export default function BudgetsAdmin() {
         fetch("/api/budgets"),
         fetch("/api/clients"),
         fetch("/api/products"),
+        fetch("/api/services"),
       ]);
       const results = await Promise.all(responses.map((response) => response.json()));
       const failedIndex = responses.findIndex((response) => !response.ok);
@@ -82,6 +88,7 @@ export default function BudgetsAdmin() {
       setBudgets(results[0].items);
       setClients(results[1].items);
       setProducts(results[2].items);
+      setServices(results[3].items);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los datos.");
     } finally {
@@ -91,7 +98,7 @@ export default function BudgetsAdmin() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetch("/api/budgets"), fetch("/api/clients"), fetch("/api/products")])
+    Promise.all([fetch("/api/budgets"), fetch("/api/clients"), fetch("/api/products"), fetch("/api/services")])
       .then(async (responses) => {
         const results = await Promise.all(responses.map((response) => response.json()));
         const failedIndex = responses.findIndex((response) => !response.ok);
@@ -103,6 +110,7 @@ export default function BudgetsAdmin() {
         setBudgets(results[0].items);
         setClients(results[1].items);
         setProducts(results[2].items);
+        setServices(results[3].items);
       })
       .catch((loadError: unknown) => {
         if (active) setError(loadError instanceof Error ? loadError.message : "No se pudieron cargar los datos.");
@@ -125,7 +133,11 @@ export default function BudgetsAdmin() {
 
   function startCreate() {
     setEditingBudget(null);
-    setForm({ ...emptyForm(), productos: products.length ? [{ idproducto: "", cantidad: 1 }] : [] });
+    setForm({
+      ...emptyForm(),
+      productos: products.length ? [{ idproducto: "", cantidad: 1 }] : [],
+      servicios: services.length ? [{ idservicio: "", cantidad: 1 }] : [],
+    });
     setContactMode(clients.length ? "existing" : "new");
     setClientQuery("");
     setError("");
@@ -146,6 +158,7 @@ export default function BudgetsAdmin() {
       estado: budget.estado ?? "borrador",
       vigente_hasta: budget.vigente_hasta ?? "",
       productos: budget.productos.map((item) => ({ idproducto: item.idproducto, cantidad: item.cantidad })),
+      servicios: (budget.servicios ?? []).map((item) => ({ idservicio: item.idservicio, cantidad: item.cantidad })),
     });
     setContactMode("existing");
     setClientQuery("");
@@ -168,8 +181,19 @@ export default function BudgetsAdmin() {
     }));
   }
 
+  function updateServiceLine(index: number, patch: Partial<BudgetServiceInput>) {
+    setForm((current) => ({
+      ...current,
+      servicios: current.servicios.map((line, lineIndex) => lineIndex === index ? { ...line, ...patch } : line),
+    }));
+  }
+
   async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!form.productos.length && !form.servicios.length) {
+      setError("Agregá al menos un producto o un servicio al presupuesto.");
+      return;
+    }
     setSaving(true);
     setError("");
     setNotice("");
@@ -197,6 +221,7 @@ export default function BudgetsAdmin() {
           estado: form.estado,
           vigente_hasta: form.vigente_hasta,
           productos: form.productos,
+          servicios: form.servicios,
         }),
       });
       const result = await response.json();
@@ -279,6 +304,9 @@ export default function BudgetsAdmin() {
   const formTotal = form.productos.reduce((sum, line) => {
     const product = products.find((item) => item.idproducto === line.idproducto);
     return sum + (product ? product.Valor * (Number.isFinite(line.cantidad) ? line.cantidad : 0) : 0);
+  }, 0) + form.servicios.reduce((sum, line) => {
+    const service = services.find((item) => item.idservicio === line.idservicio);
+    return sum + (service ? service.Valor * (Number.isFinite(line.cantidad) ? line.cantidad : 0) : 0);
   }, 0);
 
   return (
@@ -287,7 +315,7 @@ export default function BudgetsAdmin() {
         <div>
           <span className="eyebrow">ADMINISTRACIÓN DEL SISTEMA</span>
           <h1>Presupuestos</h1>
-          <p>Prepará presupuestos vinculados a clientes y productos.</p>
+          <p>Prepará presupuestos con productos y servicios del catálogo.</p>
         </div>
         <button className="users-create-button" onClick={startCreate} type="button"><Plus size={16} /> Nuevo presupuesto</button>
       </header>
@@ -310,7 +338,7 @@ export default function BudgetsAdmin() {
                 const isExpired = Boolean(budget.vigente_hasta && budget.vigente_hasta < new Date().toISOString().slice(0, 10) && (status === "borrador" || status === "enviado"));
                 return (
                 <tr key={budget.idpresupuesto}>
-                  <td><strong className="budget-description">{budget.descripcion}</strong><small className="budget-lines-count">{budget.productos.length} {budget.productos.length === 1 ? "producto" : "productos"}</small></td>
+                  <td><strong className="budget-description">{budget.descripcion}</strong><small className="budget-lines-count">{budget.productos.length + (budget.servicios?.length ?? 0)} {(budget.productos.length + (budget.servicios?.length ?? 0)) === 1 ? "renglón" : "renglones"}</small></td>
                   <td>{client ? `${client.nombre} ${client.apellido}` : "Cliente no disponible"}<small className="budget-client-phone">{client?.telefono ?? ""}</small></td>
                   <td>{dateFormatter.format(new Date(`${budget.fecha}T00:00:00Z`))}</td>
                   <td className="product-value">{currencyFormatter.format(budget.total)}</td>
@@ -372,24 +400,47 @@ export default function BudgetsAdmin() {
                 <div className="budget-section-heading"><h3>Productos</h3><button className="budget-add-line" disabled={!products.length} onClick={() => setForm((current) => ({ ...current, productos: [...current.productos, { idproducto: "", cantidad: 1 }] }))} type="button"><Plus size={14} /> Agregar producto</button></div>
                 {form.productos.length ? <div className="budget-products-grid-scroll">
                   <table className="budget-products-grid">
-                    <thead><tr><th>Producto / servicio</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
+                    <thead><tr><th>Producto</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
                     <tbody>{form.productos.map((line, index) => {
                       const product = products.find((item) => item.idproducto === line.idproducto);
                       const lineTotal = (product?.Valor ?? 0) * (Number.isFinite(line.cantidad) ? line.cantidad : 0);
                       return <tr key={`${index}-${line.idproducto}`}>
-                        <td><select aria-label="Producto o servicio" onChange={(event) => updateLine(index, { idproducto: event.target.value })} required value={line.idproducto}>
+                        <td><select aria-label="Producto" onChange={(event) => updateLine(index, { idproducto: event.target.value })} required value={line.idproducto}>
                           <option value="">Seleccionar producto</option>
                           {products.map((item) => <option key={item.idproducto} value={item.idproducto}>{item.descripcion}</option>)}
                         </select></td>
                         <td><input aria-label="Cantidad" min="0.01" onChange={(event) => updateLine(index, { cantidad: Number(event.target.value) })} required step="0.01" type="number" value={line.cantidad} /></td>
                         <td className="budget-grid-money">{product ? currencyFormatter.format(product.Valor) : "--"}</td>
                         <td className="budget-grid-money budget-grid-subtotal">{currencyFormatter.format(lineTotal)}</td>
-                        <td><button aria-label="Quitar producto" className="users-icon-button users-delete-button" disabled={form.productos.length === 1} onClick={() => setForm((current) => ({ ...current, productos: current.productos.filter((_, lineIndex) => lineIndex !== index) }))} title="Quitar producto" type="button"><Trash2 size={15} /></button></td>
+                        <td><button aria-label="Quitar producto" className="users-icon-button users-delete-button" onClick={() => setForm((current) => ({ ...current, productos: current.productos.filter((_, lineIndex) => lineIndex !== index) }))} title="Quitar producto" type="button"><Trash2 size={15} /></button></td>
                       </tr>;
                     })}</tbody>
                   </table>
-                  {!products.length && <p className="budget-inline-hint">No hay productos disponibles para agregar.</p>}
                 </div> : <p className="budget-inline-hint">Agregá al menos un producto al presupuesto.</p>}
+              </section>
+
+              <section className="budget-form-section">
+                <div className="budget-section-heading"><h3>Servicios</h3><button className="budget-add-line" disabled={!services.length} onClick={() => setForm((current) => ({ ...current, servicios: [...current.servicios, { idservicio: "", cantidad: 1 }] }))} type="button"><Plus size={14} /> Agregar servicio</button></div>
+                {form.servicios.length ? <div className="budget-products-grid-scroll">
+                  <table className="budget-products-grid">
+                    <thead><tr><th>Servicio</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
+                    <tbody>{form.servicios.map((line, index) => {
+                      const service = services.find((item) => item.idservicio === line.idservicio);
+                      const lineTotal = (service?.Valor ?? 0) * (Number.isFinite(line.cantidad) ? line.cantidad : 0);
+                      return <tr key={`${index}-${line.idservicio}`}>
+                        <td><select aria-label="Servicio" onChange={(event) => updateServiceLine(index, { idservicio: event.target.value })} required value={line.idservicio}>
+                          <option value="">Seleccionar servicio</option>
+                          {services.map((item) => <option key={item.idservicio} value={item.idservicio}>{item.descripcion} · {item.unidad}</option>)}
+                        </select></td>
+                        <td><input aria-label="Cantidad de servicios" min="0.01" onChange={(event) => updateServiceLine(index, { cantidad: Number(event.target.value) })} required step="0.01" type="number" value={line.cantidad} /></td>
+                        <td className="budget-grid-money">{service ? currencyFormatter.format(service.Valor) : "--"}</td>
+                        <td className="budget-grid-money budget-grid-subtotal">{currencyFormatter.format(lineTotal)}</td>
+                        <td><button aria-label="Quitar servicio" className="users-icon-button users-delete-button" onClick={() => setForm((current) => ({ ...current, servicios: current.servicios.filter((_, lineIndex) => lineIndex !== index) }))} title="Quitar servicio" type="button"><Trash2 size={15} /></button></td>
+                      </tr>;
+                    })}</tbody>
+                  </table>
+                </div> : <p className="budget-inline-hint">Agregá servicios si corresponde.</p>}
+                {!services.length && <p className="budget-inline-hint">No hay servicios disponibles en el catálogo.</p>}
                 <div className="budget-grand-total"><span>Total del presupuesto</span><strong>{currencyFormatter.format(formTotal)}</strong></div>
               </section>
 
@@ -412,6 +463,22 @@ export default function BudgetsAdmin() {
 
       {viewingBudget && (() => {
         const client = clients.find((item) => item.idclientes === viewingBudget.idclientes);
+        const lines = [
+          ...viewingBudget.productos.map((item) => ({
+            id: item.idproducto,
+            descripcion: item.descripcion_producto,
+            cantidad: item.cantidad,
+            valorUnitario: item.valor_unitario,
+            valorTotal: item.valor_total,
+          })),
+          ...(viewingBudget.servicios ?? []).map((item) => ({
+            id: item.idservicio,
+            descripcion: `${item.descripcion_servicio} (${item.unidad_servicio})`,
+            cantidad: item.cantidad,
+            valorUnitario: item.valor_unitario,
+            valorTotal: item.valor_total,
+          })),
+        ];
         return <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setViewingBudget(null); }}>
           <section aria-labelledby="budget-view-title" aria-modal="true" className="users-modal budget-view-modal" ref={budgetViewDialog} role="dialog" tabIndex={-1}>
             <header className="users-modal-heading modal-heading-warning">
@@ -426,9 +493,9 @@ export default function BudgetsAdmin() {
               </div>
               <p className="budget-view-status">Estado: <strong>{budgetStatusLabels[viewingBudget.estado ?? "borrador"]}</strong>{viewingBudget.vigente_hasta && <> · Vigente hasta {dateFormatter.format(new Date(`${viewingBudget.vigente_hasta}T00:00:00Z`))}</>}</p>
               <div className="budget-view-table-scroll"><table className="budget-view-table">
-                <thead><tr><th>Producto / servicio</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th></tr></thead>
-                <tbody>{viewingBudget.productos.map((item, index) => <tr key={`${item.idproducto}-${index}`}>
-                  <td>{item.descripcion_producto}</td><td>{item.cantidad}</td><td>{currencyFormatter.format(item.valor_unitario)}</td><td>{currencyFormatter.format(item.valor_total)}</td>
+                <thead><tr><th>Producto o servicio</th><th>Cantidad</th><th>Valor unitario</th><th>Subtotal</th></tr></thead>
+                <tbody>{lines.map((item, index) => <tr key={`${item.id}-${index}`}>
+                  <td>{item.descripcion}</td><td>{item.cantidad}</td><td>{currencyFormatter.format(item.valorUnitario)}</td><td>{currencyFormatter.format(item.valorTotal)}</td>
                 </tr>)}</tbody>
                 <tfoot><tr><td colSpan={3}>TOTAL DEL PRESUPUESTO</td><td>{currencyFormatter.format(viewingBudget.total)}</td></tr></tfoot>
               </table></div>

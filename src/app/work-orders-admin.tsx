@@ -166,7 +166,7 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
               : visibleOrders.length ? visibleOrders.map((workOrder) => {
                 const assignee = users.find((user) => user.idusuario === workOrder.usuario_asignado);
                 return <tr key={workOrder.id}>
-                  <td><strong className="budget-description">{workOrder.descripcion}</strong><small className="budget-lines-count">{workOrder.materiales.length} {workOrder.materiales.length === 1 ? "material" : "materiales"}</small></td>
+                  <td><strong className="budget-description">{workOrder.descripcion}</strong><small className="budget-lines-count">{workOrder.materiales.length + (workOrder.servicios?.length ?? 0)} {(workOrder.materiales.length + (workOrder.servicios?.length ?? 0)) === 1 ? "renglón" : "renglones"} del presupuesto</small></td>
                   <td>{workOrder.cliente ? `${workOrder.cliente.nombre} ${workOrder.cliente.apellido}` : "Cliente no disponible"}<small className="budget-client-phone">{workOrder.cliente?.telefono ?? ""}</small></td>
                   <td>{workOrder.fecha_programada || "Sin programar"}<small className="budget-client-phone">{workOrder.direccion || "Dirección pendiente"}</small></td>
                   <td>{assignee?.usuario ?? (workOrder.usuario_asignado ? "Técnico asignado" : "Sin asignar")}</td>
@@ -194,7 +194,8 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
               <label className="budget-field work-order-field-wide">Tareas<input maxLength={2000} onChange={(event) => setForm({ ...form, tareas: event.target.value })} required value={form.tareas} /></label>
               <label className="budget-field work-order-field-wide">Técnico asignado<select onChange={(event) => setForm({ ...form, usuario_asignado: event.target.value })} value={form.usuario_asignado}><option value="">Sin asignar</option>{users.map((user) => <option key={user.idusuario} value={user.idusuario}>{user.usuario}</option>)}</select></label>
             </div>
-            <section className="work-order-materials"><h3>Materiales del presupuesto</h3>{selected.materiales.length ? selected.materiales.map((material, index) => <div key={`${material.idproducto}-${index}`}><span>{material.descripcion_producto}</span><strong>{material.cantidad}</strong></div>) : <p>No hay materiales asociados.</p>}</section>
+            <section className="work-order-materials"><h3>Productos del presupuesto</h3>{selected.materiales.length ? selected.materiales.map((material, index) => <div key={`${material.idproducto}-${index}`}><span>{material.descripcion_producto}</span><strong>{material.cantidad}</strong></div>) : <p>No hay productos asociados.</p>}</section>
+            {(selected.servicios?.length ?? 0) > 0 && <section className="work-order-materials"><h3>Servicios del presupuesto</h3>{selected.servicios?.map((service, index) => <div key={`${service.idservicio}-${index}`}><span>{service.descripcion_servicio} ({service.unidad_servicio})</span><strong>{service.cantidad}</strong></div>)}</section>}
             {error && <p className="users-message users-message-error" role="alert">{error}</p>}
             <div className="user-editor-actions"><button className="users-cancel-button" disabled={saving} onClick={() => { setSelected(null); setForm(null); }} type="button">Cancelar</button><button className="users-save-button" disabled={saving} type="submit">{saving && <LoaderCircle className="loading-spinner" size={14} />}{saving ? "Guardando..." : "Guardar orden"}</button></div>
           </form>

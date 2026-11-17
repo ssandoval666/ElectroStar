@@ -13,6 +13,15 @@ export type BudgetProduct = {
   valor_total: number;
 };
 
+export type BudgetService = {
+  idservicio: string;
+  descripcion_servicio: string;
+  unidad_servicio: string;
+  cantidad: number;
+  valor_unitario: number;
+  valor_total: number;
+};
+
 export type BudgetStatus = "borrador" | "enviado" | "aceptado" | "rechazado";
 
 export type BudgetRecord = {
@@ -21,6 +30,7 @@ export type BudgetRecord = {
   descripcion: string;
   fecha: string;
   productos: BudgetProduct[];
+  servicios?: BudgetService[];
   total: number;
   estado?: BudgetStatus;
   vigente_hasta?: string;
