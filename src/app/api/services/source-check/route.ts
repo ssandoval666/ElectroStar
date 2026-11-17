@@ -1,23 +1,13 @@
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { getAdminSessionUser } from "@/lib/session";
 import { defaultAAIERICUrl, extractAAIERICPrices, fetchAAIERICPdf } from "@/lib/aaieric-pdf";
 import { getServiceStore, normalizeServiceName, normalizeServiceUnit, writeServiceStore } from "@/lib/services";
 
 export const maxDuration = 120;
 
-function isAuthorizedCron(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (!secret) return false;
-  const tokenBuffer = Buffer.from(token);
-  const secretBuffer = Buffer.from(secret);
-  return tokenBuffer.length === secretBuffer.length && timingSafeEqual(tokenBuffer, secretBuffer);
-}
-
 export async function POST(request: Request) {
   const admin = await getAdminSessionUser();
-  const isCron = isAuthorizedCron(request);
-  if (!admin && !isCron) return Response.json({ message: "No autorizado." }, { status: 403 });
+  if (!admin) return Response.json({ message: "No autorizado." }, { status: 403 });
 
   try {
     const store = await getServiceStore();
