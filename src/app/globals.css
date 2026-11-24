@@ -478,9 +478,31 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .calendar-delete-button { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid #f0d9d3; border-radius: 3px; background: #fff; color: #a8473b; cursor: pointer; font-size: 10px; }
 .calendar-delete-button:hover { background: #fdf2ef; }
 .calendar-delete-button:disabled { cursor: wait; opacity: .7; }
-.work-orders-table { min-width: 850px; }
+.work-order-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.work-order-card { min-width: 0; padding: 17px; border: 1px solid #e3e8e2; border-radius: 6px; background: #fff; box-shadow: 0 2px 8px rgba(27,54,36,.035); }
+.work-order-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 13px; border-bottom: 1px solid #edf0ec; }
+.work-order-card-heading > div { min-width: 0; }
+.work-order-card-heading .eyebrow { margin-bottom: 5px; font-size: 8px; }
+.work-order-card-heading h2 { margin: 0; color: #2f4336; font-size: 14px; line-height: 1.4; font-weight: 650; overflow-wrap: anywhere; }
+.work-order-card-heading small { display: block; margin-top: 5px; color: #8a958d; font-size: 9px; }
+.work-order-card-heading .budget-status { flex: 0 0 auto; }
+.work-order-card-client { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; }
+.work-order-card-client strong { color: #3b5143; font-size: 11px; font-weight: 650; }
+.work-order-card-client span { color: #849087; font-size: 10px; }
+.work-order-card-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 12px 0; border-top: 1px solid #edf0ec; }
+.work-order-card-details > div { min-width: 0; }
+.work-order-card-details dt { margin-bottom: 4px; color: #849087; font-size: 8px; letter-spacing: .06em; font-weight: 700; text-transform: uppercase; }
+.work-order-card-details dd { margin: 0; color: #49594e; font-size: 10px; overflow-wrap: anywhere; }
+.work-order-card-address { grid-column: 1 / -1; }
+.work-order-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 11px; border-top: 1px solid #edf0ec; }
+.work-order-map-action { width: auto; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; border: 1px solid #dce5dc; border-radius: 7px; color: #42634d; font-size: 10px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.work-order-map-action:hover:not(:disabled) { background: #f2f7ef; color: #285d3e; }
+.work-order-map-action:disabled { cursor: not-allowed; opacity: .55; }
+.work-order-card-actions > .users-cancel-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.work-order-card-status { display: flex; align-items: center; gap: 8px; color: #849087; font-size: 9px; }
 .work-order-status-select { min-width: 112px; height: 31px; padding: 0 7px; border: 1px solid #dfe5df; border-radius: 3px; background: #fff; color: #526357; font-size: 9px; }
 .work-order-status-select:disabled { opacity: .6; }
+.work-order-cards-message { grid-column: 1 / -1; min-height: 90px; display: flex; align-items: center; justify-content: center; gap: 9px; margin: 0; padding: 20px; border: 1px solid #e3e8e2; border-radius: 4px; background: #fff; color: #8a958d; font-size: 11px; text-align: center; }
 .work-order-modal { width: min(100%, 650px); }
 .work-order-editor { padding: 18px 21px 20px; }
 .work-order-editor-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
@@ -608,6 +630,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .work-order-editor { padding: 15px 16px 17px; }
   .work-order-editor-fields { grid-template-columns: 1fr; gap: 10px; }
   .work-order-field-wide { grid-column: auto; }
+  .work-order-cards { grid-template-columns: 1fr; gap: 10px; }
+  .work-order-card { padding: 14px; }
+  .work-order-card-actions { flex-wrap: wrap; }
+  .work-order-card-status { flex: 1; justify-content: flex-end; }
+  .work-order-status-select { max-width: 150px; }
   .client-history-layout { grid-template-columns: 1fr; }
   .client-history-options { max-height: 210px; }
   .client-history-detail { padding: 16px; }

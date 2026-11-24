@@ -158,40 +158,52 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
         <label className="users-search"><Search size={16} /><input onChange={(event) => setQuery(event.target.value)} placeholder="Buscar orden, cliente o dirección" value={query} /></label>
         <span>{workOrders.length} {workOrders.length === 1 ? "orden" : "órdenes"}</span>
       </div>
-      <div aria-busy={loading} className="users-table-scroll">
-        <table className="users-table work-orders-table">
-          <thead><tr><th>Trabajo</th><th>Cliente</th><th>Programación</th><th>Técnico</th><th>Estado</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
-          <tbody>
-            {loading ? <tr><td className="users-empty" colSpan={6}><span className="table-loading" role="status"><LoaderCircle className="loading-spinner" size={17} /> Cargando órdenes...</span></td></tr>
-              : visibleOrders.length ? visibleOrders.map((workOrder) => {
-                const assignee = users.find((user) => user.idusuario === workOrder.usuario_asignado);
-                return <tr key={workOrder.id}>
-                  <td><strong className="budget-description">{workOrder.descripcion}</strong><small className="budget-lines-count">{workOrder.materiales.length + (workOrder.servicios?.length ?? 0)} {(workOrder.materiales.length + (workOrder.servicios?.length ?? 0)) === 1 ? "renglón" : "renglones"} del presupuesto</small></td>
-                  <td>{workOrder.cliente ? `${workOrder.cliente.nombre} ${workOrder.cliente.apellido}` : "Cliente no disponible"}<small className="budget-client-phone">{workOrder.cliente?.telefono ?? ""}</small></td>
-                  <td>{workOrder.fecha_programada || "Sin programar"}<small className="budget-client-phone">{workOrder.direccion || "Dirección pendiente"}</small></td>
-                  <td>{assignee?.usuario ?? (workOrder.usuario_asignado ? "Técnico asignado" : "Sin asignar")}</td>
-                  <td><span className={`budget-status work-order-status-${workOrder.estado}`}>{statusLabels[workOrder.estado]}</span></td>
-                  <td><div className="users-row-actions">
-                    {workOrder.direccion.trim()
-                      ? <a
-                        aria-label={`Abrir mapa de ${workOrder.direccion}`}
-                        className="users-icon-button"
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(workOrder.direccion)}`}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                        title="Abrir dirección en Google Maps"
-                      ><MapPin size={15} /></a>
-                      : <button aria-label="La orden no tiene dirección" className="users-icon-button" disabled title="No hay una dirección cargada"><MapPin size={15} /></button>}
-                    {isAdmin
-                      ? <button aria-label={`Editar orden ${workOrder.descripcion}`} className="users-icon-button" onClick={() => editWorkOrder(workOrder)} title="Editar orden" type="button"><Pencil size={15} /></button>
-                      : <select aria-label={`Actualizar estado de ${workOrder.descripcion}`} className="work-order-status-select" disabled={updatingId === workOrder.id} onChange={(event) => void updateStatus(workOrder, event.target.value as WorkOrderStatus)} value={workOrder.estado}>
-                        {statusChoices[workOrder.estado].map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
-                      </select>}
-                  </div></td>
-                </tr>;
-              }) : <tr><td className="users-empty" colSpan={6}>{query ? "No hay órdenes que coincidan con la búsqueda." : isAdmin ? "Todavía no hay órdenes. Se crean al aceptar un presupuesto." : "No tenés órdenes asignadas."}</td></tr>}
-          </tbody>
-        </table>
+      <div aria-busy={loading} className="work-order-cards">
+        {loading
+          ? <p className="work-order-cards-message" role="status"><LoaderCircle className="loading-spinner" size={17} /> Cargando órdenes...</p>
+          : visibleOrders.length ? visibleOrders.map((workOrder) => {
+            const assignee = users.find((user) => user.idusuario === workOrder.usuario_asignado);
+            const lineCount = workOrder.materiales.length + (workOrder.servicios?.length ?? 0);
+            return <article className="work-order-card" key={workOrder.id}>
+              <header className="work-order-card-heading">
+                <div>
+                  <span className="eyebrow">ORDEN DE TRABAJO</span>
+                  <h2>{workOrder.descripcion}</h2>
+                  <small>{lineCount} {lineCount === 1 ? "renglón" : "renglones"} del presupuesto</small>
+                </div>
+                <span className={`budget-status work-order-status-${workOrder.estado}`}>{statusLabels[workOrder.estado]}</span>
+              </header>
+              <div className="work-order-card-client">
+                <strong>{workOrder.cliente ? `${workOrder.cliente.nombre} ${workOrder.cliente.apellido}` : "Cliente no disponible"}</strong>
+                {workOrder.cliente?.telefono && <span>{workOrder.cliente.telefono}</span>}
+              </div>
+              <dl className="work-order-card-details">
+                <div><dt>Programación</dt><dd>{workOrder.fecha_programada || "Sin programar"}</dd></div>
+                <div><dt>Técnico</dt><dd>{assignee?.usuario ?? (workOrder.usuario_asignado ? "Técnico asignado" : "Sin asignar")}</dd></div>
+                <div className="work-order-card-address"><dt>Dirección del trabajo</dt><dd>{workOrder.direccion || "Dirección pendiente"}</dd></div>
+              </dl>
+              <footer className="work-order-card-actions">
+                {workOrder.direccion.trim()
+                  ? <a
+                    aria-label={`Abrir mapa de ${workOrder.direccion}`}
+                    className="users-icon-button work-order-map-action"
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(workOrder.direccion)}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                    title="Abrir dirección en Google Maps"
+                  ><MapPin size={16} /><span>Ver mapa</span></a>
+                  : <button aria-label="La orden no tiene dirección" className="users-icon-button work-order-map-action" disabled title="No hay una dirección cargada" type="button"><MapPin size={16} /><span>Sin dirección</span></button>}
+                {isAdmin
+                  ? <button aria-label={`Editar orden ${workOrder.descripcion}`} className="users-cancel-button" onClick={() => editWorkOrder(workOrder)} title="Editar orden" type="button"><Pencil size={15} /> Editar orden</button>
+                  : <label className="work-order-card-status">
+                    <span>Actualizar estado</span>
+                    <select aria-label={`Actualizar estado de ${workOrder.descripcion}`} className="work-order-status-select" disabled={updatingId === workOrder.id} onChange={(event) => void updateStatus(workOrder, event.target.value as WorkOrderStatus)} value={workOrder.estado}>
+                      {statusChoices[workOrder.estado].map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
+                    </select>
+                  </label>}
+              </footer>
+            </article>;
+          }) : <p className="work-order-cards-message">{query ? "No hay órdenes que coincidan con la búsqueda." : isAdmin ? "Todavía no hay órdenes. Se crean al aceptar un presupuesto." : "No tenés órdenes asignadas."}</p>}
       </div>
       {selected && form && <div className="users-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) { setSelected(null); setForm(null); } }}>
         <section aria-labelledby="work-order-title" aria-modal="true" className="users-modal work-order-modal" role="dialog">
