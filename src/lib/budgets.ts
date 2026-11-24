@@ -3,6 +3,7 @@ export type ClientRecord = {
   nombre: string;
   apellido: string;
   telefono: string;
+  direccion?: string;
 };
 
 export type BudgetProduct = {

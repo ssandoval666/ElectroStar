@@ -34,7 +34,8 @@ export async function POST(request: Request) {
 
   try {
     const clients = await readJsonEntity<ClientRecord[]>("clientes.json", async () => []);
-    if (!clients.some((client) => client.idclientes === input.idclientes)) {
+    const client = clients.find((candidate) => candidate.idclientes === input.idclientes);
+    if (!client) {
       return Response.json({ message: "El cliente seleccionado no existe." }, { status: 400 });
     }
     const lines = await buildBudgetLines(input);
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       usuario_modificacion: admin.idusuario,
     };
     await writeJsonEntity("presupuestos.json", [...items, budget]);
-    if (budget.estado === "aceptado") await ensureWorkOrderForBudget(budget, admin.idusuario);
+    if (budget.estado === "aceptado") await ensureWorkOrderForBudget(budget, admin.idusuario, client.direccion ?? "");
     return Response.json({ budget }, { status: 201 });
   } catch (error) {
     console.error("Budget create error:", error);

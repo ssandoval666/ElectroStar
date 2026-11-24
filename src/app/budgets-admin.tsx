@@ -21,6 +21,7 @@ type BudgetForm = {
   nombre: string;
   apellido: string;
   telefono: string;
+  direccion: string;
   descripcion: string;
   fecha: string;
   estado: BudgetStatus;
@@ -40,6 +41,7 @@ const emptyForm = (): BudgetForm => ({
   nombre: "",
   apellido: "",
   telefono: "",
+  direccion: "",
   descripcion: "",
   fecha: new Date().toISOString().slice(0, 10),
   estado: "borrador",
@@ -153,6 +155,7 @@ export default function BudgetsAdmin() {
       nombre: client?.nombre ?? "",
       apellido: client?.apellido ?? "",
       telefono: client?.telefono ?? "",
+      direccion: client?.direccion ?? "",
       descripcion: budget.descripcion,
       fecha: budget.fecha,
       estado: budget.estado ?? "borrador",
@@ -204,7 +207,7 @@ export default function BudgetsAdmin() {
         const clientResponse = await fetch("/api/clients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nombre: form.nombre, apellido: form.apellido, telefono: form.telefono }),
+          body: JSON.stringify({ nombre: form.nombre, apellido: form.apellido, telefono: form.telefono, direccion: form.direccion }),
         });
         const clientResult = await clientResponse.json();
         if (!clientResponse.ok) throw new Error(clientResult.message ?? "No se pudo guardar el cliente.");
@@ -297,7 +300,7 @@ export default function BudgetsAdmin() {
 
   const matchingClients = useMemo(() => {
     const normalizedQuery = clientQuery.trim().toLocaleLowerCase();
-    return clients.filter((client) => `${client.nombre} ${client.apellido} ${client.telefono}`.toLocaleLowerCase().includes(normalizedQuery));
+    return clients.filter((client) => `${client.nombre} ${client.apellido} ${client.telefono} ${client.direccion ?? ""}`.toLocaleLowerCase().includes(normalizedQuery));
   }, [clients, clientQuery]);
 
   const selectedClient = clients.find((client) => client.idclientes === form.idclientes);
@@ -370,17 +373,18 @@ export default function BudgetsAdmin() {
                   <button aria-pressed={contactMode === "new"} className={contactMode === "new" ? "budget-mode-active" : ""} onClick={() => { setContactMode("new"); setForm((current) => ({ ...current, idclientes: "" })); }} type="button">Nuevo cliente</button>
                 </div></div>
                 {contactMode === "existing" ? <div className="budget-client-picker">
-                  <label className="budget-field">Buscar cliente<input onChange={(event) => setClientQuery(event.target.value)} placeholder="Nombre, apellido o teléfono" value={clientQuery} /></label>
+                  <label className="budget-field">Buscar cliente<input onChange={(event) => setClientQuery(event.target.value)} placeholder="Nombre, apellido, teléfono o dirección" value={clientQuery} /></label>
                   <label className="budget-field">Cliente<select onChange={(event) => setForm((current) => ({ ...current, idclientes: event.target.value }))} required value={form.idclientes}>
                     <option value="">Seleccionar cliente</option>
                     {matchingClients.map((client) => <option key={client.idclientes} value={client.idclientes}>{client.nombre} {client.apellido} · {client.telefono}</option>)}
                   </select></label>
-                  {selectedClient && <div className="budget-selected-client"><strong>{selectedClient.nombre} {selectedClient.apellido}</strong><span>{selectedClient.telefono}</span></div>}
+                  {selectedClient && <div className="budget-selected-client"><strong>{selectedClient.nombre} {selectedClient.apellido}</strong><span>{selectedClient.telefono}</span>{selectedClient.direccion && <span>{selectedClient.direccion}</span>}</div>}
                   {!clients.length && <p className="budget-inline-hint">No hay clientes guardados. Elegí “Nuevo cliente”.</p>}
                 </div> : <div className="budget-client-fields">
                   <label className="budget-field">Nombre<input autoComplete="given-name" maxLength={80} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} required value={form.nombre} /></label>
                   <label className="budget-field">Apellido<input autoComplete="family-name" maxLength={80} onChange={(event) => setForm((current) => ({ ...current, apellido: event.target.value }))} required value={form.apellido} /></label>
                   <label className="budget-field budget-field-wide">Teléfono de contacto<input autoComplete="tel" maxLength={40} onChange={(event) => setForm((current) => ({ ...current, telefono: event.target.value }))} required type="tel" value={form.telefono} /></label>
+                  <label className="budget-field budget-field-wide">Dirección del cliente (opcional)<input autoComplete="street-address" maxLength={240} onChange={(event) => setForm((current) => ({ ...current, direccion: event.target.value }))} value={form.direccion} /></label>
                 </div>}
               </section>
 
@@ -488,7 +492,7 @@ export default function BudgetsAdmin() {
             <div className="budget-view-content">
               <div className="budget-view-brand"><strong>CON100CIAELECTRICA</strong><span>PROPUESTA COMERCIAL</span></div>
               <div className="budget-view-info">
-                <div><span>CLIENTE</span><strong>{client ? `${client.nombre} ${client.apellido}` : "Cliente no disponible"}</strong><small>{client?.telefono ?? ""}</small></div>
+                <div><span>CLIENTE</span><strong>{client ? `${client.nombre} ${client.apellido}` : "Cliente no disponible"}</strong><small>{client?.telefono ?? ""}</small>{client?.direccion && <small>{client.direccion}</small>}</div>
                 <div><span>FECHA DEL PRESUPUESTO</span><strong>{dateFormatter.format(new Date(`${viewingBudget.fecha}T00:00:00Z`))}</strong><small>N° {viewingBudget.idpresupuesto.slice(0, 8).toUpperCase()}</small></div>
               </div>
               <p className="budget-view-status">Estado: <strong>{budgetStatusLabels[viewingBudget.estado ?? "borrador"]}</strong>{viewingBudget.vigente_hasta && <> · Vigente hasta {dateFormatter.format(new Date(`${viewingBudget.vigente_hasta}T00:00:00Z`))}</>}</p>

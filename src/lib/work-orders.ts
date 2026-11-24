@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { readJsonEntity, writeJsonEntity } from "@/lib/drive-json-store";
-import type { BudgetRecord } from "@/lib/budgets";
+import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
 
 export type WorkOrderStatus = "pendiente" | "programada" | "en_curso" | "completada" | "cancelada";
 
@@ -27,13 +27,22 @@ export type WorkOrderView = WorkOrder & {
 
 let pendingWorkOrderBatch: Promise<WorkOrder[]> | null = null;
 
-async function appendMissingWorkOrders(budgets: BudgetRecord[], existingWorkOrders: WorkOrder[]) {
+async function appendMissingWorkOrders(
+  budgets: BudgetRecord[],
+  existingWorkOrders: WorkOrder[],
+  clients: ClientRecord[],
+) {
   const existingBudgetIds = new Set(existingWorkOrders.map((workOrder) => workOrder.idpresupuesto));
+  const clientsById = new Map(clients.map((client) => [client.idclientes, client]));
   const missingOrders: WorkOrder[] = [];
   for (const budget of budgets) {
     if (budget.estado !== "aceptado" || existingBudgetIds.has(budget.idpresupuesto)) continue;
     existingBudgetIds.add(budget.idpresupuesto);
-    missingOrders.push(createWorkOrderForBudget(budget, budget.usuario_modificacion));
+    missingOrders.push(createWorkOrderForBudget(
+      budget,
+      budget.usuario_modificacion,
+      clientsById.get(budget.idclientes)?.direccion ?? "",
+    ));
   }
 
   if (!missingOrders.length) return existingWorkOrders;
@@ -43,7 +52,7 @@ async function appendMissingWorkOrders(budgets: BudgetRecord[], existingWorkOrde
   return workOrders;
 }
 
-function createWorkOrderForBudget(budget: BudgetRecord, userId: string): WorkOrder {
+function createWorkOrderForBudget(budget: BudgetRecord, userId: string, address: string): WorkOrder {
   const now = new Date().toISOString();
   return {
     id: randomUUID(),
@@ -51,7 +60,7 @@ function createWorkOrderForBudget(budget: BudgetRecord, userId: string): WorkOrd
     idclientes: budget.idclientes,
     descripcion: budget.descripcion,
     tareas: budget.descripcion,
-    direccion: "",
+    direccion: address,
     fecha_programada: "",
     usuario_asignado: "",
     estado: "pendiente",
@@ -63,12 +72,12 @@ function createWorkOrderForBudget(budget: BudgetRecord, userId: string): WorkOrd
   };
 }
 
-export async function ensureWorkOrderForBudget(budget: BudgetRecord, userId: string) {
+export async function ensureWorkOrderForBudget(budget: BudgetRecord, userId: string, address = "") {
   const items = await readJsonEntity<WorkOrder[]>("ordenes-trabajo.json", async () => []);
   const existing = items.find((item) => item.idpresupuesto === budget.idpresupuesto);
   if (existing) return existing;
 
-  const workOrder = createWorkOrderForBudget(budget, userId);
+  const workOrder = createWorkOrderForBudget(budget, userId, address);
   await writeJsonEntity("ordenes-trabajo.json", [...items, workOrder]);
   return workOrder;
 }
@@ -76,12 +85,13 @@ export async function ensureWorkOrderForBudget(budget: BudgetRecord, userId: str
 export async function ensureWorkOrdersForBudgets(
   budgets: BudgetRecord[],
   existingWorkOrders: WorkOrder[],
+  clients: ClientRecord[],
 ): Promise<WorkOrder[]> {
   if (pendingWorkOrderBatch) {
-    return appendMissingWorkOrders(budgets, await pendingWorkOrderBatch);
+    return appendMissingWorkOrders(budgets, await pendingWorkOrderBatch, clients);
   }
 
-  const batch = appendMissingWorkOrders(budgets, existingWorkOrders);
+  const batch = appendMissingWorkOrders(budgets, existingWorkOrders, clients);
   pendingWorkOrderBatch = batch;
 
   try {

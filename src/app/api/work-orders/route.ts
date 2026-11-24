@@ -14,7 +14,7 @@ export async function GET() {
       readJsonEntity<ClientRecord[]>("clientes.json", async () => []),
       readJsonEntity<WorkOrder[]>("ordenes-trabajo.json", async () => []),
     ]);
-    const workOrders = await ensureWorkOrdersForBudgets(budgets, storedWorkOrders);
+    const workOrders = await ensureWorkOrdersForBudgets(budgets, storedWorkOrders, clients);
     const visibleOrders = user.perfil === "Admin"
       ? workOrders
       : workOrders.filter((workOrder) => workOrder.usuario_asignado === user.idusuario);

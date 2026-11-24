@@ -95,11 +95,20 @@ export async function GET(_request: Request, { params }: RouteContext) {
     pdf.font("Helvetica").fontSize(11).fillColor(colors.ink).text(budget.descripcion, margin, y, { width: contentWidth, lineGap: 2 });
     y = pdf.y + 17;
 
-    const clientCardHeight = 88;
+    const clientAddress = client.direccion?.trim() ? `Dirección: ${client.direccion.trim()}` : "";
+    pdf.font("Helvetica").fontSize(8);
+    const clientAddressHeight = clientAddress
+      ? pdf.heightOfString(clientAddress, { width: 210, lineGap: 2 })
+      : 0;
+    const clientCardHeight = Math.max(88, 76 + clientAddressHeight);
     pdf.roundedRect(margin, y, contentWidth, clientCardHeight, 4).fill(colors.light).stroke(colors.line);
     pdf.font("Helvetica-Bold").fontSize(8).fillColor(colors.green).text("CLIENTE", margin + 14, y + 13);
     pdf.font("Helvetica-Bold").fontSize(11).fillColor(colors.ink).text(`${client.nombre} ${client.apellido}`, margin + 14, y + 30, { width: 210 });
     pdf.font("Helvetica").fontSize(9).fillColor(colors.muted).text(`Teléfono: ${client.telefono}`, margin + 14, y + 49, { width: 210 });
+    if (clientAddress) {
+      pdf.font("Helvetica").fontSize(8).fillColor(colors.muted)
+        .text(clientAddress, margin + 14, y + 64, { width: 210, lineGap: 2 });
+    }
     const detailX = margin + 270;
     pdf.font("Helvetica-Bold").fontSize(8).fillColor(colors.green).text("FECHA DEL PRESUPUESTO", detailX, y + 13);
     pdf.font("Helvetica").fontSize(10).fillColor(colors.ink).text(formatDate, detailX, y + 31);

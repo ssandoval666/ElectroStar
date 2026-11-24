@@ -1,6 +1,6 @@
 import { getAdminSessionUser } from "@/lib/session";
 import { readJsonEntity, writeJsonEntity } from "@/lib/drive-json-store";
-import type { BudgetRecord } from "@/lib/budgets";
+import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
 import { createBudgetUpdate } from "@/lib/budgets-api";
 import { ensureWorkOrderForBudget } from "@/lib/work-orders";
 
@@ -23,8 +23,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     if (!input) return Response.json({ message: "Completá cliente, descripción, fecha y al menos un producto o servicio con cantidad válida." }, { status: 400 });
     if (!lines) return Response.json({ message: "Uno de los productos o servicios seleccionados ya no existe." }, { status: 400 });
 
-    const clients = await readJsonEntity<{ idclientes: string }[]>("clientes.json", async () => []);
-    if (!clients.some((client) => client.idclientes === input.idclientes)) {
+    const clients = await readJsonEntity<ClientRecord[]>("clientes.json", async () => []);
+    const client = clients.find((candidate) => candidate.idclientes === input.idclientes);
+    if (!client) {
       return Response.json({ message: "El cliente seleccionado no existe." }, { status: 400 });
     }
 
@@ -53,7 +54,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     };
     budgets[index] = budget;
     await writeJsonEntity("presupuestos.json", budgets);
-    if (budget.estado === "aceptado") await ensureWorkOrderForBudget(budget, admin.idusuario);
+    if (budget.estado === "aceptado") await ensureWorkOrderForBudget(budget, admin.idusuario, client.direccion ?? "");
     return Response.json({ budget });
   } catch (error) {
     console.error("Budget update error:", error);

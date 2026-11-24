@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { LoaderCircle, Pencil, Search, X } from "lucide-react";
+import { LoaderCircle, MapPin, Pencil, Search, X } from "lucide-react";
 import type { WorkOrderStatus, WorkOrderView } from "@/lib/work-orders";
 
 type ManagedUser = { idusuario: string; usuario: string; perfil: string };
@@ -172,6 +172,16 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
                   <td>{assignee?.usuario ?? (workOrder.usuario_asignado ? "Técnico asignado" : "Sin asignar")}</td>
                   <td><span className={`budget-status work-order-status-${workOrder.estado}`}>{statusLabels[workOrder.estado]}</span></td>
                   <td><div className="users-row-actions">
+                    {workOrder.direccion.trim()
+                      ? <a
+                        aria-label={`Abrir mapa de ${workOrder.direccion}`}
+                        className="users-icon-button"
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(workOrder.direccion)}`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        title="Abrir dirección en Google Maps"
+                      ><MapPin size={15} /></a>
+                      : <button aria-label="La orden no tiene dirección" className="users-icon-button" disabled title="No hay una dirección cargada"><MapPin size={15} /></button>}
                     {isAdmin
                       ? <button aria-label={`Editar orden ${workOrder.descripcion}`} className="users-icon-button" onClick={() => editWorkOrder(workOrder)} title="Editar orden" type="button"><Pencil size={15} /></button>
                       : <select aria-label={`Actualizar estado de ${workOrder.descripcion}`} className="work-order-status-select" disabled={updatingId === workOrder.id} onChange={(event) => void updateStatus(workOrder, event.target.value as WorkOrderStatus)} value={workOrder.estado}>

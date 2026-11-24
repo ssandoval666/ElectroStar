@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LoaderCircle, Search } from "lucide-react";
-import type { BudgetRecord } from "@/lib/budgets";
+import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
 import type { WorkOrderView } from "@/lib/work-orders";
 
-type Client = { idclientes: string; nombre: string; apellido: string; telefono: string };
 type HistoryItem = {
   id: string;
   date: string;
@@ -31,7 +30,7 @@ const dateFormatter = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: 
 const currencyFormatter = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
 export default function ClientsHistoryAdmin() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientRecord[]>([]);
   const [budgets, setBudgets] = useState<BudgetRecord[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrderView[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -65,7 +64,7 @@ export default function ClientsHistoryAdmin() {
 
   const visibleClients = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
-    return clients.filter((client) => `${client.nombre} ${client.apellido} ${client.telefono}`.toLocaleLowerCase().includes(normalized));
+    return clients.filter((client) => `${client.nombre} ${client.apellido} ${client.telefono} ${client.direccion ?? ""}`.toLocaleLowerCase().includes(normalized));
   }, [clients, query]);
   const selectedClient = clients.find((client) => client.idclientes === selectedId);
   const history = useMemo<HistoryItem[]>(() => {
@@ -105,7 +104,7 @@ export default function ClientsHistoryAdmin() {
           </div>
         </aside>
         {selectedClient ? <div className="client-history-detail">
-          <section className="client-history-profile"><span className="eyebrow">FICHA DEL CLIENTE</span><h2>{selectedClient.nombre} {selectedClient.apellido}</h2><p>{selectedClient.telefono}</p></section>
+          <section className="client-history-profile"><span className="eyebrow">FICHA DEL CLIENTE</span><h2>{selectedClient.nombre} {selectedClient.apellido}</h2><p>{selectedClient.telefono}</p>{selectedClient.direccion && <p>{selectedClient.direccion}</p>}</section>
           <div className="client-history-stats"><article><strong>{clientBudgets.length}</strong><span>Presupuestos</span></article><article><strong>{clientOrders.length}</strong><span>Órdenes de trabajo</span></article></div>
           <section className="client-history-timeline"><div className="panel-heading"><div><span className="eyebrow">ACTIVIDAD</span><h2>Historial</h2></div><span>{history.length} registros</span></div>
             {history.length ? history.map((entry) => <article className="client-history-entry" key={entry.id}><span className={`client-history-kind ${entry.kind === "Presupuesto" ? "client-history-kind-budget" : "client-history-kind-order"}`}>{entry.kind}</span><div><strong>{entry.description}</strong><span>{entry.status} · {entry.detail}</span></div><time dateTime={entry.date}>{dateFormatter.format(new Date(`${entry.date}T00:00:00Z`))}</time></article>) : <p className="client-history-empty">Este cliente todavía no tiene presupuestos ni órdenes de trabajo.</p>}

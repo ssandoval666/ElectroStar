@@ -10,9 +10,10 @@ function parseClient(payload: unknown) {
   const nombre = typeof client.nombre === "string" ? client.nombre.trim() : "";
   const apellido = typeof client.apellido === "string" ? client.apellido.trim() : "";
   const telefono = typeof client.telefono === "string" ? client.telefono.trim() : "";
+  const direccion = typeof client.direccion === "string" ? client.direccion.trim() : "";
 
-  if (!nombre || nombre.length > 80 || !apellido || apellido.length > 80 || !telefono || telefono.length > 40) return null;
-  return { nombre, apellido, telefono };
+  if (!nombre || nombre.length > 80 || !apellido || apellido.length > 80 || !telefono || telefono.length > 40 || direccion.length > 240) return null;
+  return { nombre, apellido, telefono, ...(direccion ? { direccion } : {}) };
 }
 
 export async function GET() {

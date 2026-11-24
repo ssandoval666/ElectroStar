@@ -44,7 +44,7 @@ export async function GET(request: Request) {
       readJsonEntity<WorkOrder[]>("ordenes-trabajo.json", async () => []),
       readJsonEntity<CalendarEntry[]>("calendario.json", async () => []),
     ]);
-    const workOrders = await ensureWorkOrdersForBudgets(budgets, storedWorkOrders);
+    const workOrders = await ensureWorkOrdersForBudgets(budgets, storedWorkOrders, clients);
     const visibleOrders = user.perfil === "Admin"
       ? workOrders
       : workOrders.filter((workOrder) => workOrder.usuario_asignado === user.idusuario);
