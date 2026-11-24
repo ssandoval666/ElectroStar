@@ -340,10 +340,28 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .products-table th:last-child, .products-table td:last-child { width: 92px; }
 .product-description { color: #2f4336; font-size: 11px; font-weight: 650; }
 .product-value { color: #354d3d !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.budgets-table th:nth-child(3), .budgets-table td:nth-child(3) { width: 130px; white-space: nowrap; }
-.budgets-table th:nth-child(4), .budgets-table td:nth-child(4) { width: 150px; text-align: right; }
-.budgets-table th:nth-child(5), .budgets-table td:nth-child(5) { width: 115px; }
-.budgets-table th:last-child, .budgets-table td:last-child { width: 170px; }
+.budget-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.budget-card { min-width: 0; padding: 17px; border: 1px solid #e3e8e2; border-radius: 6px; background: #fff; box-shadow: 0 2px 8px rgba(27,54,36,.035); }
+.budget-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 13px; border-bottom: 1px solid #edf0ec; }
+.budget-card-heading > div { min-width: 0; }
+.budget-card-heading .eyebrow { margin-bottom: 5px; font-size: 8px; }
+.budget-card-heading h2 { margin: 0; color: #2f4336; font-size: 14px; line-height: 1.4; font-weight: 650; overflow-wrap: anywhere; }
+.budget-card-heading small { display: block; margin-top: 5px; color: #8a958d; font-size: 9px; }
+.budget-card-heading .budget-status { flex: 0 0 auto; }
+.budget-card-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 13px 0; }
+.budget-card-summary > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.budget-card-summary span { color: #849087; font-size: 8px; letter-spacing: .06em; font-weight: 700; text-transform: uppercase; }
+.budget-card-summary strong { color: #3b5143; font-size: 11px; font-weight: 650; overflow-wrap: anywhere; }
+.budget-card-summary small { color: #849087; font-size: 9px; overflow-wrap: anywhere; }
+.budget-card-total { align-items: flex-end; text-align: right; }
+.budget-card-total strong { color: #2e583c; font-family: Georgia, serif; font-size: 19px; font-weight: 500; white-space: nowrap; }
+.budget-card-validity { margin: 0; padding-top: 10px; border-top: 1px solid #edf0ec; color: #849087; font-size: 9px; }
+.budget-card-actions { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #edf0ec; }
+.budget-card-action { min-height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 9px; border: 1px solid #e4e9e3; border-radius: 5px; background: #fff; color: #52665a; cursor: pointer; font-size: 9px; font-weight: 600; }
+.budget-card-action:hover:not(:disabled) { background: #f2f7ef; color: #285d3e; }
+.budget-card-action:disabled { cursor: not-allowed; opacity: .55; }
+.budget-card-delete:hover:not(:disabled) { border-color: #f0d9d3; background: #fdf2ef; color: #a8473b; }
+.budget-cards-message { grid-column: 1 / -1; min-height: 90px; display: flex; align-items: center; justify-content: center; gap: 9px; margin: 0; padding: 20px; border: 1px solid #e3e8e2; border-radius: 4px; background: #fff; color: #8a958d; font-size: 11px; text-align: center; }
 .budget-description { display: block; color: #2f4336; font-size: 11px; font-weight: 650; }
 .budget-lines-count, .budget-client-phone { display: block; margin-top: 4px; color: #8a958d; font-size: 9px; }
 .budget-status { display: inline-flex; min-height: 22px; align-items: center; padding: 0 8px; border-radius: 2px; background: #edf0ec; color: #69756c; font-size: 9px; font-weight: 700; white-space: nowrap; }
@@ -626,7 +644,10 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .budget-view-content { padding: 15px 16px 17px; }
   .budget-view-info { grid-template-columns: 1fr; gap: 13px; }
   .budget-view-footer { align-items: flex-start; flex-direction: column; }
-  .budgets-table { min-width: 820px; }
+  .budget-cards { grid-template-columns: 1fr; gap: 10px; }
+  .budget-card { padding: 14px; }
+  .budget-card-actions { justify-content: space-between; gap: 6px; }
+  .budget-card-action { flex: 1; padding: 0 6px; }
   .work-order-editor { padding: 15px 16px 17px; }
   .work-order-editor-fields { grid-template-columns: 1fr; gap: 10px; }
   .work-order-field-wide { grid-column: auto; }

@@ -331,32 +331,44 @@ export default function BudgetsAdmin() {
         <span>{budgets.length} {budgets.length === 1 ? "presupuesto" : "presupuestos"}</span>
       </div>
 
-      <div aria-busy={loading} className="users-table-scroll">
-        <table className="users-table budgets-table">
-          <thead><tr><th>Presupuesto</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th><th><span className="visually-hidden">Acciones</span></th></tr></thead>
-          <tbody>
-            {loading ?             <tr><td className="users-empty" colSpan={6}><span className="table-loading" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={17} /> Cargando presupuestos...</span></td></tr> : visibleBudgets.length ? visibleBudgets.map((budget) => {
-              const client = clients.find((item) => item.idclientes === budget.idclientes);
-                const status = budget.estado ?? "borrador";
-                const isExpired = Boolean(budget.vigente_hasta && budget.vigente_hasta < new Date().toISOString().slice(0, 10) && (status === "borrador" || status === "enviado"));
-                return (
-                <tr key={budget.idpresupuesto}>
-                  <td><strong className="budget-description">{budget.descripcion}</strong><small className="budget-lines-count">{budget.productos.length + (budget.servicios?.length ?? 0)} {(budget.productos.length + (budget.servicios?.length ?? 0)) === 1 ? "renglón" : "renglones"}</small></td>
-                  <td>{client ? `${client.nombre} ${client.apellido}` : "Cliente no disponible"}<small className="budget-client-phone">{client?.telefono ?? ""}</small></td>
-                  <td>{dateFormatter.format(new Date(`${budget.fecha}T00:00:00Z`))}</td>
-                  <td className="product-value">{currencyFormatter.format(budget.total)}</td>
-                  <td><span className={`budget-status budget-status-${isExpired ? "vencido" : status}`}>{isExpired ? "Vencido" : budgetStatusLabels[status]}</span></td>
-                  <td><div className="users-row-actions">
-                    <button aria-label={`Ver ${budget.descripcion}`} className="users-icon-button" onClick={() => setViewingBudget(budget)} title="Ver presupuesto" type="button"><Eye size={15} /></button>
-                    <button aria-label={`Exportar ${budget.descripcion} a PDF`} className="users-icon-button budget-export-icon" disabled={exportingId === budget.idpresupuesto} onClick={() => void exportBudget(budget)} title="Exportar a PDF" type="button">{exportingId === budget.idpresupuesto ? <LoaderCircle aria-hidden="true" className="loading-spinner" size={15} /> : <FileDown size={15} />}</button>
-                    <button aria-label={`Editar ${budget.descripcion}`} className="users-icon-button" disabled={budget.estado === "aceptado"} onClick={() => startEdit(budget)} title={budget.estado === "aceptado" ? "Los presupuestos aceptados no se pueden modificar" : "Editar presupuesto"} type="button"><Pencil size={15} /></button>
-                    <button aria-label={`Eliminar ${budget.descripcion}`} className="users-icon-button users-delete-button" onClick={() => { setError(""); setPendingDelete(budget); }} title="Eliminar presupuesto" type="button"><Trash2 size={15} /></button>
-                  </div></td>
-                </tr>
-              );
-            }) : <tr><td className="users-empty" colSpan={6}>{query ? "No hay presupuestos que coincidan con la búsqueda." : "Todavía no hay presupuestos."}</td></tr>}
-          </tbody>
-        </table>
+      <div aria-busy={loading} className="budget-cards">
+        {loading
+          ? <p className="budget-cards-message" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={17} /> Cargando presupuestos...</p>
+          : visibleBudgets.length ? visibleBudgets.map((budget) => {
+            const client = clients.find((item) => item.idclientes === budget.idclientes);
+            const status = budget.estado ?? "borrador";
+            const isExpired = Boolean(budget.vigente_hasta && budget.vigente_hasta < new Date().toISOString().slice(0, 10) && (status === "borrador" || status === "enviado"));
+            const lineCount = budget.productos.length + (budget.servicios?.length ?? 0);
+            return <article className="budget-card" key={budget.idpresupuesto}>
+              <header className="budget-card-heading">
+                <div>
+                  <span className="eyebrow">PRESUPUESTO · {dateFormatter.format(new Date(`${budget.fecha}T00:00:00Z`))}</span>
+                  <h2>{budget.descripcion}</h2>
+                  <small>{lineCount} {lineCount === 1 ? "renglón" : "renglones"}</small>
+                </div>
+                <span className={`budget-status budget-status-${isExpired ? "vencido" : status}`}>{isExpired ? "Vencido" : budgetStatusLabels[status]}</span>
+              </header>
+              <div className="budget-card-summary">
+                <div>
+                  <span>Cliente</span>
+                  <strong>{client ? `${client.nombre} ${client.apellido}` : "Cliente no disponible"}</strong>
+                  {client?.telefono && <small>{client.telefono}</small>}
+                  {client?.direccion && <small>{client.direccion}</small>}
+                </div>
+                <div className="budget-card-total">
+                  <span>Total</span>
+                  <strong>{currencyFormatter.format(budget.total)}</strong>
+                </div>
+              </div>
+              {budget.vigente_hasta && <p className="budget-card-validity">Vigente hasta {dateFormatter.format(new Date(`${budget.vigente_hasta}T00:00:00Z`))}</p>}
+              <footer className="budget-card-actions">
+                <button aria-label={`Ver ${budget.descripcion}`} className="budget-card-action" onClick={() => setViewingBudget(budget)} title="Ver presupuesto" type="button"><Eye size={15} /><span>Ver</span></button>
+                <button aria-label={`Exportar ${budget.descripcion} a PDF`} className="budget-card-action budget-export-icon" disabled={exportingId === budget.idpresupuesto} onClick={() => void exportBudget(budget)} title="Exportar a PDF" type="button">{exportingId === budget.idpresupuesto ? <LoaderCircle aria-hidden="true" className="loading-spinner" size={15} /> : <FileDown size={15} />}<span>PDF</span></button>
+                <button aria-label={`Editar ${budget.descripcion}`} className="budget-card-action" disabled={budget.estado === "aceptado"} onClick={() => startEdit(budget)} title={budget.estado === "aceptado" ? "Los presupuestos aceptados no se pueden modificar" : "Editar presupuesto"} type="button"><Pencil size={15} /><span>Editar</span></button>
+                <button aria-label={`Eliminar ${budget.descripcion}`} className="budget-card-action budget-card-delete" onClick={() => { setError(""); setPendingDelete(budget); }} title="Eliminar presupuesto" type="button"><Trash2 size={15} /><span>Eliminar</span></button>
+              </footer>
+            </article>;
+          }) : <p className="budget-cards-message">{query ? "No hay presupuestos que coincidan con la búsqueda." : "Todavía no hay presupuestos."}</p>}
       </div>
 
       {formOpen && (
