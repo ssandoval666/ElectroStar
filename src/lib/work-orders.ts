@@ -4,6 +4,17 @@ import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
 
 export type WorkOrderStatus = "pendiente" | "programada" | "en_curso" | "completada" | "cancelada";
 
+export type SignaturePoint = { x: number; y: number };
+export type WorkOrderSignature = {
+  strokes: SignaturePoint[][];
+  signedAt: string;
+  signedBy: string;
+};
+export type WorkOrderSignatures = {
+  client: WorkOrderSignature;
+  responsible: WorkOrderSignature;
+};
+
 export type WorkOrder = {
   id: string;
   idpresupuesto: string;
@@ -16,6 +27,7 @@ export type WorkOrder = {
   estado: WorkOrderStatus;
   materiales: BudgetRecord["productos"];
   servicios?: NonNullable<BudgetRecord["servicios"]>;
+  signatures?: WorkOrderSignatures;
   fecha_creacion: string;
   fecha_modificacion: string;
   usuario_modificacion: string;

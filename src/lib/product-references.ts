@@ -5,12 +5,14 @@ import type { WorkOrder } from "@/lib/work-orders";
 export type ProductReferences = {
   budgets: Array<{ id: string; descripcion: string; fecha: string }>;
   workOrders: Array<{ id: string; descripcion: string; fecha_programada: string; estado: string }>;
+  stock: Array<{ idproducto: string; cantidad: number }>;
 };
 
 export async function getProductReferences(idproducto: string): Promise<ProductReferences> {
-  const [budgets, workOrders] = await Promise.all([
+  const [budgets, workOrders, stock] = await Promise.all([
     readJsonEntity<BudgetRecord[]>("presupuestos.json", async () => []),
     readJsonEntity<WorkOrder[]>("ordenes-trabajo.json", async () => []),
+    readJsonEntity<Array<{ idproducto: string; cantidad: number }>>("stock.json", async () => []),
   ]);
 
   return {
@@ -35,5 +37,6 @@ export async function getProductReferences(idproducto: string): Promise<ProductR
         fecha_programada: workOrder.fecha_programada,
         estado: workOrder.estado,
       })),
+    stock: stock.filter((item) => item.idproducto === idproducto),
   };
 }

@@ -28,12 +28,15 @@ NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES=3
 GOOGLE_DRIVE_FILE_ID=id-de-la-carpeta-de-drive
 GOOGLE_CLIENT_EMAIL=cuenta-de-servicio@proyecto.iam.gserviceaccount.com
 GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# Reemplazá el marcador por el plazo de garantía acordado, en meses
+SERVICE_WARRANTY_MONTHS=<plazo_en_meses>
 ```
 
 - `SESSION_SECRET`: secreto utilizado para firmar los JWT de sesión con HS256. Debe tener al menos 32 bytes. Usá un valor seguro y distinto en producción.
 - `NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES`: minutos de inactividad antes del cierre automático. El valor predeterminado es `3`; valores no numéricos o menores que 1 también utilizan ese valor.
 - `GOOGLE_DRIVE_FILE_ID`: ID de la carpeta de Drive, no el ID de un archivo.
 - `GOOGLE_CLIENT_EMAIL` y `GOOGLE_PRIVATE_KEY`: credenciales de la cuenta de servicio. Configurá las tres variables de Drive en conjunto. Los saltos de línea de la clave privada pueden representarse como `\n`.
+- `SERVICE_WARRANTY_MONTHS`: cantidad de meses de garantía indicada en las facturas PDF de órdenes completadas. Debe configurarse como un entero positivo; reemplazá `<plazo_en_meses>` por el plazo definido por la empresa.
 
 En desarrollo, si no se configura Google Drive, la aplicación lee y escribe en `.local-data/`. En otros entornos Drive es obligatorio: la aplicación informa el error y no recurre a almacenamiento efímero.
 
@@ -154,10 +157,14 @@ Las rutas de administración requieren una sesión `Admin` y responden `403` si 
 | `DELETE /api/users/:idusuario` | Admin | Elimina un usuario. |
 | `GET /api/products` | Admin | Lista productos y servicios. |
 | `POST /api/products` | Admin | Crea un producto o servicio. |
-| `GET /api/products/:idproducto` | Admin | Consulta los presupuestos y órdenes que referencian un producto. |
+| `GET /api/products/:idproducto` | Admin | Consulta las referencias de presupuestos, órdenes de trabajo y stock de un producto. |
 | `PATCH /api/products/:idproducto` | Admin | Modifica un producto o servicio. |
 | `DELETE /api/products/:idproducto` | Admin | Elimina solo si no tiene referencias. |
 | `POST /api/products/import` | Admin | Endpoint reservado; devuelve `501` mientras no se defina el formato. |
+| `GET /api/stock` | Admin | Lista las cantidades registradas y los productos del catálogo. |
+| `POST /api/stock` | Admin | Registra un producto del catálogo con su cantidad disponible. |
+| `PATCH /api/stock/:idproducto` | Admin | Actualiza la cantidad disponible de un producto. |
+| `DELETE /api/stock/:idproducto` | Admin | Quita un producto del inventario sin eliminarlo del catálogo. |
 | `GET /api/clients` | Admin | Lista clientes. |
 | `POST /api/clients` | Admin | Crea un cliente. |
 | `GET /api/budgets` | Admin | Lista presupuestos. |
@@ -166,7 +173,8 @@ Las rutas de administración requieren una sesión `Admin` y responden `403` si 
 | `DELETE /api/budgets/:idpresupuesto` | Admin | Elimina un presupuesto solo si no tiene una orden asociada. |
 | `GET /api/budgets/:idpresupuesto/export` | Admin | Descarga el presupuesto como PDF. |
 | `GET /api/work-orders` | Sesión | Admin lista todas; Operario solo las asignadas a su usuario. Completa en lote órdenes faltantes de presupuestos aceptados. |
-| `PATCH /api/work-orders/:id` | Sesión | Admin configura la orden; Operario actualiza el estado de una orden asignada. |
+| `PATCH /api/work-orders/:id` | Sesión | Admin configura la orden; Operario actualiza el estado de una orden asignada. Para completarla requiere ambas firmas. |
+| `GET /api/work-orders/:id/export` | Sesión | Descarga la factura PDF de una orden completada; Admin o técnico asignado. |
 | `GET /api/calendar` | Sesión | Lista actividades de agenda. |
 | `POST /api/calendar` | Sesión | Crea una actividad. |
 | `PUT /api/calendar/:id` | Sesión | Modifica una actividad. |
@@ -181,9 +189,10 @@ Cada entidad se guarda como un archivo JSON. En desarrollo sin Google Drive, los
 | `usuarios.json` | Usuarios, nombre, apellido y hashes bcrypt de contraseña. |
 | `menu.json` | Elementos y estructura del menú. |
 | `productos.json` | Catálogo de productos y servicios. |
+| `stock.json` | Cantidades disponibles vinculadas a los productos por `idproducto`. |
 | `clientes.json` | Datos de clientes. |
 | `presupuestos.json` | Presupuestos y copia de los valores cotizados. |
-| `ordenes-trabajo.json` | Órdenes, asignación, estado y materiales. |
+| `ordenes-trabajo.json` | Órdenes, asignación, estado, materiales y firmas capturadas al completar el trabajo. |
 | `calendario.json` | Actividades de agenda. |
 
-Al leer `menu.json`, la API conserva la configuración existente y garantiza la rama protegida **Administración → Menús**. Los archivos JSON son adecuados para un volumen y concurrencia acotados; al crecer el uso, conviene migrar a una base de datos transaccional y establecer copias de seguridad.
+Al leer `menu.json`, la API conserva la configuración existente y garantiza las opciones protegidas de Administración, incluido **Stock**. Los archivos JSON son adecuados para un volumen y concurrencia acotados; al crecer el uso, conviene migrar a una base de datos transaccional y establecer copias de seguridad.

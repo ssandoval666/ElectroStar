@@ -19,6 +19,7 @@ type ProductForm = {
 type ProductReferences = {
   budgets: Array<{ id: string; descripcion: string; fecha: string }>;
   workOrders: Array<{ id: string; descripcion: string; fecha_programada: string; estado: string }>;
+  stock: Array<{ idproducto: string; cantidad: number }>;
 };
 
 const emptyForm: ProductForm = { descripcion: "", Valor: "" };
@@ -259,20 +260,21 @@ export default function ProductsAdmin() {
           description="Antes de eliminarlo, verificamos que no esté utilizado."
           onClose={closeDeleteModal}
           title="Eliminar producto"
-          variant={error || (productReferences && (productReferences.budgets.length > 0 || productReferences.workOrders.length > 0)) ? "error" : "warning"}
+          variant={error || (productReferences && (productReferences.budgets.length > 0 || productReferences.workOrders.length > 0 || productReferences.stock.length > 0)) ? "error" : "warning"}
         >
           <div className="delete-confirmation">
             <p>¿Querés eliminar <strong>{pendingDelete.descripcion}</strong>?</p>
-            {checkingReferences && <p className="product-reference-loading" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={14} /> Consultando presupuestos y órdenes...</p>}
-            {productReferences && (productReferences.budgets.length > 0 || productReferences.workOrders.length > 0) && <div className="product-references" role="status">
+            {checkingReferences && <p className="product-reference-loading" role="status"><LoaderCircle aria-hidden="true" className="loading-spinner" size={14} /> Consultando referencias...</p>}
+            {productReferences && (productReferences.budgets.length > 0 || productReferences.workOrders.length > 0 || productReferences.stock.length > 0) && <div className="product-references" role="status">
               <p>No se puede eliminar porque este producto tiene referencias:</p>
               {productReferences.budgets.length > 0 && <section><strong>Presupuestos ({productReferences.budgets.length})</strong><ul className="product-reference-list">{productReferences.budgets.map((budget) => <li key={budget.id}>{budget.descripcion} · {budget.fecha}</li>)}</ul></section>}
               {productReferences.workOrders.length > 0 && <section><strong>Órdenes de trabajo ({productReferences.workOrders.length})</strong><ul className="product-reference-list">{productReferences.workOrders.map((workOrder) => <li key={workOrder.id}>{workOrder.descripcion}{workOrder.fecha_programada ? ` · ${workOrder.fecha_programada}` : ""}</li>)}</ul></section>}
+              {productReferences.stock.length > 0 && <section><strong>Inventario ({productReferences.stock.length})</strong><ul className="product-reference-list">{productReferences.stock.map((item) => <li key={item.idproducto}>{item.cantidad} disponibles</li>)}</ul></section>}
             </div>}
             {error && <p className="users-message users-message-error" role="alert">{error}</p>}
             <div className="user-editor-actions">
               <button className="users-cancel-button" disabled={deleting} onClick={closeDeleteModal} type="button">Cancelar</button>
-              <button className="users-confirm-delete" disabled={deleting || checkingReferences || !productReferences || productReferences.budgets.length > 0 || productReferences.workOrders.length > 0 || Boolean(error)} onClick={() => void confirmDelete()} type="button">{deleting && <LoaderCircle aria-hidden="true" className="loading-spinner" size={14} />}{deleting ? "Eliminando..." : "Eliminar producto"}</button>
+              <button className="users-confirm-delete" disabled={deleting || checkingReferences || !productReferences || productReferences.budgets.length > 0 || productReferences.workOrders.length > 0 || productReferences.stock.length > 0 || Boolean(error)} onClick={() => void confirmDelete()} type="button">{deleting && <LoaderCircle aria-hidden="true" className="loading-spinner" size={14} />}{deleting ? "Eliminando..." : "Eliminar producto"}</button>
             </div>
           </div>
         </ProductModal>

@@ -321,6 +321,17 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .users-modal .users-save-button { min-height: 38px; padding: 0 16px; border-radius: 7px; box-shadow: 0 4px 10px rgba(24,107,77,.15); transition: background .16s ease, box-shadow .16s ease, transform .16s ease; }
 .users-modal .users-save-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 7px 15px rgba(24,107,77,.22); }
 .users-save-button:disabled { cursor: wait; opacity: .7; }
+.signature-modal-backdrop { z-index: 22; }
+.signature-modal { width: min(100%, 620px); }
+.signature-pad-content { padding: 18px 22px 21px; }
+.signature-signer { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; color: #748278; font-size: 10px; }
+.signature-signer strong { color: #25372d; font-size: 13px; font-weight: 650; }
+.signature-canvas { display: block; width: 100%; height: 190px; border: 1px solid #bdcbbc; border-radius: 6px; background: repeating-linear-gradient(to bottom, #fff 0, #fff 46px, #e8eee7 47px, #fff 48px); cursor: crosshair; touch-action: none; }
+.signature-hint { margin: 8px 0 0; color: #748278; font-size: 10px; }
+.signature-modal-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 17px; }
+.signature-modal-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.signature-clear-link { display: block; margin: 10px 0 0 auto; padding: 0; border: 0; background: transparent; color: #738178; cursor: pointer; font-size: 10px; text-decoration: underline; }
+.signature-clear-link:disabled { cursor: wait; opacity: .6; }
 .delete-confirmation { padding: 18px 21px 20px; }
 .delete-confirmation > p:first-child { margin: 0; color: #536157; font-size: 12px; line-height: 1.65; }
 
@@ -362,6 +373,16 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .budget-card-action:disabled { cursor: not-allowed; opacity: .55; }
 .budget-card-delete:hover:not(:disabled) { border-color: #f0d9d3; background: #fdf2ef; color: #a8473b; }
 .budget-cards-message { grid-column: 1 / -1; min-height: 90px; display: flex; align-items: center; justify-content: center; gap: 9px; margin: 0; padding: 20px; border: 1px solid #e3e8e2; border-radius: 4px; background: #fff; color: #8a958d; font-size: 11px; text-align: center; }
+.stock-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.stock-card-icon { flex: 0 0 auto; color: #65816d; }
+.stock-card-summary { grid-template-columns: minmax(0, 1fr) minmax(0, auto); }
+.stock-card-summary .budget-card-total { align-items: flex-end; text-align: right; }
+.stock-card-summary .budget-card-total strong { font-family: inherit; font-size: 13px; font-weight: 650; }
+.stock-card-reference { margin: 0; color: #849087; font-size: 9px; }
+.stock-empty-hint { margin: 0 0 14px; padding: 12px 14px; border: 1px solid #e3e8e2; border-radius: 4px; background: #fff; color: #65756a; font-size: 10px; }
+.stock-editor-fields { grid-template-columns: minmax(0, 1fr) 170px; }
+.stock-editor-fields select { width: 100%; height: 37px; min-width: 0; padding: 0 10px; border: 1px solid #dfe5df; border-radius: 3px; background: #fff; color: #25372d; font-size: 11px; }
+.stock-editor-fields select:focus { border-color: #82a88b; outline: 0; box-shadow: 0 0 0 3px rgba(24,107,77,.07); }
 .budget-description { display: block; color: #2f4336; font-size: 11px; font-weight: 650; }
 .budget-lines-count, .budget-client-phone { display: block; margin-top: 4px; color: #8a958d; font-size: 9px; }
 .budget-status { display: inline-flex; min-height: 22px; align-items: center; padding: 0 8px; border-radius: 2px; background: #edf0ec; color: #69756c; font-size: 9px; font-weight: 700; white-space: nowrap; }
@@ -549,6 +570,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .client-editor-modal { width: min(100%, 560px); }
 .client-editor { margin: 0; padding: 18px 21px 20px; }
 .client-editor-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.client-editor-fields .client-observations-input { display: block; width: 100%; min-width: 0; min-height: 100px; resize: vertical; padding: 9px 10px; border: 1px solid #aebeb2; border-radius: 4px; background: #fff; color: #25372d; font: inherit; font-size: 10px; line-height: 1.5; box-shadow: inset 0 1px 2px rgba(23,61,48,.08); }
+.client-editor-fields .client-observations-input::placeholder { color: #89968c; }
+.client-editor-fields .client-observations-input:focus { border-color: #5e9271; outline: 2px solid rgba(24,107,77,.14); outline-offset: 1px; box-shadow: inset 0 1px 2px rgba(23,61,48,.05); }
+.client-editor-observations { grid-column: 1 / -1; }
+.client-history-observations { white-space: pre-wrap; overflow-wrap: anywhere; }
 .client-history-stats { display: flex; gap: 10px; padding: 14px 0; }
 .client-history-stats article { min-width: 120px; display: flex; flex-direction: column; gap: 4px; padding: 11px 13px; border-radius: 3px; background: #f6f8f4; }
 .client-history-stats strong { color: #244733; font-family: Georgia, serif; font-size: 21px; font-weight: 400; }
@@ -638,6 +664,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .user-editor-fields { grid-template-columns: 1fr; gap: 10px; }
   .product-editor { padding: 15px 16px 17px; }
   .product-editor-fields { grid-template-columns: 1fr; gap: 10px; }
+  .stock-editor-fields { grid-template-columns: 1fr; }
   .budget-editor { max-height: 72svh; padding: 0 16px 17px; }
   .budget-section-heading { align-items: flex-start; }
   .budget-mode-toggle button { padding: 0 6px; font-size: 8px; }
@@ -649,6 +676,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .budget-view-info { grid-template-columns: 1fr; gap: 13px; }
   .budget-view-footer { align-items: flex-start; flex-direction: column; }
   .budget-cards { grid-template-columns: 1fr; gap: 10px; }
+  .stock-cards { grid-template-columns: 1fr; gap: 10px; }
   .budget-card { padding: 14px; }
   .budget-card-actions { justify-content: space-between; gap: 6px; }
   .budget-card-action { flex: 1; padding: 0 6px; }
@@ -671,6 +699,10 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .users-modal-backdrop { align-items: center; padding: 12px; }
   .users-modal { max-height: 92svh; }
   .users-modal-heading { padding: 17px 16px 14px; }
+  .signature-pad-content { padding: 15px 16px 17px; }
+  .signature-canvas { height: 170px; }
+  .signature-modal-actions { flex-direction: column-reverse; }
+  .signature-modal-actions button { width: 100%; min-height: 40px; }
   .user-editor { padding: 15px 16px 17px; }
   .delete-confirmation { padding: 16px; }
   .users-table { min-width: 570px; }

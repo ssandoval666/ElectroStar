@@ -85,9 +85,9 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     }
 
     const references = await getProductReferences(idproducto);
-    if (references.budgets.length || references.workOrders.length) {
+    if (references.budgets.length || references.workOrders.length || references.stock.length) {
       return Response.json({
-        message: "No se puede eliminar el producto porque está utilizado en presupuestos u órdenes de trabajo.",
+        message: "No se puede eliminar el producto porque está utilizado en presupuestos, órdenes de trabajo o en el stock.",
         references,
       }, { status: 409 });
     }

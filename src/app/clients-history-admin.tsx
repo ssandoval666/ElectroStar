@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { LoaderCircle, Pencil, Plus, Search, X } from "lucide-react";
-import type { BudgetRecord, ClientRecord } from "@/lib/budgets";
+import { formatCuitCuil, type BudgetRecord, type ClientRecord } from "@/lib/budgets";
 import type { WorkOrderView } from "@/lib/work-orders";
 
-type ClientForm = { nombre: string; apellido: string; telefono: string; direccion: string };
-const emptyClientForm: ClientForm = { nombre: "", apellido: "", telefono: "", direccion: "" };
+type ClientForm = { nombre: string; apellido: string; telefono: string; direccion: string; cuit_cuil: string; observaciones: string };
+const emptyClientForm: ClientForm = { nombre: "", apellido: "", telefono: "", direccion: "", cuit_cuil: "", observaciones: "" };
 
 type HistoryItem = {
   id: string;
@@ -85,6 +85,8 @@ export default function ClientsHistoryAdmin() {
       apellido: client.apellido,
       telefono: client.telefono,
       direccion: client.direccion ?? "",
+      cuit_cuil: formatCuitCuil(client.cuit_cuil ?? ""),
+      observaciones: client.observaciones ?? "",
     });
     setError("");
     setNotice("");
@@ -131,7 +133,7 @@ export default function ClientsHistoryAdmin() {
 
   const visibleClients = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
-    return clients.filter((client) => `${client.nombre} ${client.apellido} ${client.telefono} ${client.direccion ?? ""}`.toLocaleLowerCase().includes(normalized));
+    return clients.filter((client) => `${client.nombre} ${client.apellido} ${client.telefono} ${client.direccion ?? ""} ${formatCuitCuil(client.cuit_cuil ?? "")} ${client.observaciones ?? ""}`.toLocaleLowerCase().includes(normalized));
   }, [clients, query]);
   const selectedClient = clients.find((client) => client.idclientes === selectedId);
   const history = useMemo<HistoryItem[]>(() => {
@@ -179,6 +181,8 @@ export default function ClientsHistoryAdmin() {
               <label className="budget-field">Apellido<input autoComplete="family-name" maxLength={80} onChange={(event) => setClientForm((current) => ({ ...current, apellido: event.target.value }))} required value={clientForm.apellido} /></label>
               <label className="budget-field">Teléfono de contacto<input autoComplete="tel" maxLength={40} onChange={(event) => setClientForm((current) => ({ ...current, telefono: event.target.value }))} required type="tel" value={clientForm.telefono} /></label>
               <label className="budget-field">Dirección (opcional)<input autoComplete="street-address" maxLength={240} onChange={(event) => setClientForm((current) => ({ ...current, direccion: event.target.value }))} value={clientForm.direccion} /></label>
+              <label className="budget-field">CUIT/CUIL (opcional)<input autoComplete="off" inputMode="numeric" maxLength={13} onChange={(event) => setClientForm((current) => ({ ...current, cuit_cuil: formatCuitCuil(event.target.value) }))} pattern="[0-9]{2}-[0-9]{8}-[0-9]" placeholder="XX-XXXXXXXX-X" title="Ingresá 11 dígitos. El formato se aplica automáticamente." value={clientForm.cuit_cuil} /></label>
+              <label className="budget-field client-editor-observations">Observaciones (opcional)<textarea className="client-observations-input" maxLength={2000} onChange={(event) => setClientForm((current) => ({ ...current, observaciones: event.target.value }))} placeholder="Escribí aquí las observaciones del cliente" rows={4} value={clientForm.observaciones} /></label>
             </div>
             {error && <p className="users-message users-message-error" role="alert">{error}</p>}
             <div className="user-editor-actions">
@@ -191,13 +195,13 @@ export default function ClientsHistoryAdmin() {
       {loading ? <p className="history-loading" role="status"><LoaderCircle className="loading-spinner" size={17} /> Cargando historial...</p> : <div className="client-history-layout">
         <aside className="client-history-list">
           <label className="users-search"><Search size={16} /><input onChange={(event) => setQuery(event.target.value)} placeholder="Buscar cliente" value={query} /></label>
-          <div className="client-history-options">{visibleClients.map((client) => <button className={`client-history-option ${client.idclientes === selectedId ? "client-history-option-active" : ""}`} key={client.idclientes} onClick={() => setSelectedId(client.idclientes)} type="button"><strong>{client.nombre} {client.apellido}</strong><span>{client.telefono}</span></button>)}
+          <div className="client-history-options">{visibleClients.map((client) => <button className={`client-history-option ${client.idclientes === selectedId ? "client-history-option-active" : ""}`} key={client.idclientes} onClick={() => setSelectedId(client.idclientes)} type="button"><strong>{client.nombre} {client.apellido}</strong><span>{client.telefono}</span>{client.cuit_cuil && <span>{formatCuitCuil(client.cuit_cuil)}</span>}</button>)}
             {!visibleClients.length && <p className="client-history-empty">No hay clientes que coincidan.</p>}
           </div>
         </aside>
         {selectedClient ? <div className="client-history-detail">
           <section className="client-history-profile">
-            <div><span className="eyebrow">FICHA DEL CLIENTE</span><h2>{selectedClient.nombre} {selectedClient.apellido}</h2><p>{selectedClient.telefono}</p>{selectedClient.direccion && <p>{selectedClient.direccion}</p>}</div>
+            <div><span className="eyebrow">FICHA DEL CLIENTE</span><h2>{selectedClient.nombre} {selectedClient.apellido}</h2><p>{selectedClient.telefono}</p>{selectedClient.direccion && <p>{selectedClient.direccion}</p>}{selectedClient.cuit_cuil && <p>CUIT/CUIL: {formatCuitCuil(selectedClient.cuit_cuil)}</p>}{selectedClient.observaciones && <p className="client-history-observations">Observaciones: {selectedClient.observaciones}</p>}</div>
             <button aria-label={`Editar ${selectedClient.nombre} ${selectedClient.apellido}`} className="users-cancel-button client-edit-button" onClick={() => openEditClient(selectedClient)} type="button"><Pencil size={14} /> Editar</button>
           </section>
           <div className="client-history-stats"><article><strong>{clientBudgets.length}</strong><span>Presupuestos</span></article><article><strong>{clientOrders.length}</strong><span>Órdenes de trabajo</span></article></div>

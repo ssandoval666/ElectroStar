@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   }
 
   const input = parseClientFields(payload);
-  if (!input) return Response.json({ message: "Ingresá nombre, apellido y teléfono válidos. La dirección puede tener hasta 240 caracteres." }, { status: 400 });
+  if (!input) return Response.json({ message: "Revisá nombre, apellido y teléfono. La dirección admite hasta 240 caracteres y el CUIT/CUIL, si se ingresa, debe tener 11 dígitos." }, { status: 400 });
 
   try {
     const items = await readJsonEntity<ClientRecord[]>("clientes.json", async () => []);

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import ProductsAdmin from "@/app/products-admin";
+import StockAdmin from "@/app/stock-admin";
 import ServicesAdmin from "@/app/services-admin";
 import UsersAdmin from "@/app/users-admin";
 import BudgetsAdmin from "@/app/budgets-admin";
@@ -480,7 +481,7 @@ export default function Home() {
         </header>
 
         <div className="dashboard-content">
-          {activeItem === "menu-management" && user.perfil === "Admin" ? <MenusAdmin onSaved={setMenuItems} /> : activeItem === "profile-management" && user.perfil === "Admin" ? <ProfilesAdmin /> : activeItem === "services" && user.perfil === "Admin" ? <ServicesAdmin /> : activeItem === "users" && user.perfil === "Admin" ? <UsersAdmin /> : activeItem === "products" && user.perfil === "Admin" ? <ProductsAdmin /> : activeItem === "budgets" && user.perfil === "Admin" ? <BudgetsAdmin /> : activeItem === "clients" && user.perfil === "Admin" ? <ClientsHistoryAdmin /> : activeItem === "work-orders" ? <WorkOrdersAdmin isAdmin={user.perfil === "Admin"} /> : activeItem === "calendar" ? <Calendar /> : (
+          {activeItem === "menu-management" && user.perfil === "Admin" ? <MenusAdmin onSaved={setMenuItems} /> : activeItem === "profile-management" && user.perfil === "Admin" ? <ProfilesAdmin /> : activeItem === "services" && user.perfil === "Admin" ? <ServicesAdmin /> : activeItem === "users" && user.perfil === "Admin" ? <UsersAdmin /> : activeItem === "products" && user.perfil === "Admin" ? <ProductsAdmin /> : activeItem === "stock" && user.perfil === "Admin" ? <StockAdmin /> : activeItem === "budgets" && user.perfil === "Admin" ? <BudgetsAdmin /> : activeItem === "clients" && user.perfil === "Admin" ? <ClientsHistoryAdmin /> : activeItem === "work-orders" ? <WorkOrdersAdmin isAdmin={user.perfil === "Admin"} /> : activeItem === "calendar" ? <Calendar /> : (
             <>
           {(() => {
             const now = new Date();

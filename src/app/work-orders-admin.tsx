@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { LoaderCircle, MapPin, Pencil, Search, X } from "lucide-react";
-import type { WorkOrderStatus, WorkOrderView } from "@/lib/work-orders";
+import { Download, LoaderCircle, MapPin, Pencil, Search, X } from "lucide-react";
+import SignaturePad from "@/app/signature-pad";
+import type { SignaturePoint, WorkOrderStatus, WorkOrderView } from "@/lib/work-orders";
 
 type ManagedUser = { idusuario: string; usuario: string; perfil: string };
 type WorkOrderForm = {
@@ -11,6 +12,12 @@ type WorkOrderForm = {
   fecha_programada: string;
   usuario_asignado: string;
   estado: WorkOrderStatus;
+};
+type SignatureFlow = {
+  workOrder: WorkOrderView;
+  adminForm: WorkOrderForm | null;
+  step: 1 | 2;
+  clientStrokes?: SignaturePoint[][];
 };
 
 const statusLabels: Record<WorkOrderStatus, string> = {
@@ -37,6 +44,8 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [signatureFlow, setSignatureFlow] = useState<SignatureFlow | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -97,6 +106,12 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
   }
 
   async function updateStatus(workOrder: WorkOrderView, estado: WorkOrderStatus) {
+    if (estado === "completada" && workOrder.estado !== "completada") {
+      setError("");
+      setNotice("");
+      setSignatureFlow({ workOrder, adminForm: null, step: 1 });
+      return;
+    }
     setUpdatingId(workOrder.id);
     setError("");
     setNotice("");
@@ -120,6 +135,12 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
   async function saveWorkOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected || !form) return;
+    if (form.estado === "completada" && selected.estado !== "completada") {
+      setError("");
+      setNotice("");
+      setSignatureFlow({ workOrder: selected, adminForm: form, step: 1 });
+      return;
+    }
     setSaving(true);
     setError("");
     setNotice("");
@@ -139,6 +160,80 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
       setError(saveError instanceof Error ? saveError.message : "No se pudo guardar la orden.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function acceptSignature(strokes: SignaturePoint[][]) {
+    if (!signatureFlow) return;
+    if (signatureFlow.step === 1) {
+      setSignatureFlow({ ...signatureFlow, clientStrokes: strokes, step: 2 });
+      return;
+    }
+    if (!signatureFlow.clientStrokes) {
+      setError("Volvé a registrar la firma del cliente antes de continuar.");
+      setSignatureFlow({ ...signatureFlow, step: 1 });
+      return;
+    }
+
+    const flow = signatureFlow;
+    setSaving(Boolean(flow.adminForm));
+    setUpdatingId(flow.adminForm ? null : flow.workOrder.id);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(`/api/work-orders/${encodeURIComponent(flow.workOrder.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(flow.adminForm ?? {}),
+          estado: "completada",
+          signatures: {
+            client: { strokes: flow.clientStrokes },
+            responsible: { strokes },
+          },
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message ?? "No se pudo completar la orden.");
+      setWorkOrders((items) => items.map((item) => item.id === flow.workOrder.id ? { ...item, ...result.workOrder } : item));
+      if (flow.adminForm) {
+        setSelected(null);
+        setForm(null);
+      }
+      setSignatureFlow(null);
+      setNotice("Orden completada y firmas guardadas.");
+    } catch (signatureError) {
+      setError(signatureError instanceof Error ? signatureError.message : "No se pudo completar la orden.");
+    } finally {
+      setSaving(false);
+      setUpdatingId(null);
+    }
+  }
+
+  async function downloadInvoice(workOrder: WorkOrderView) {
+    setDownloadingId(workOrder.id);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(`/api/work-orders/${encodeURIComponent(workOrder.id)}/export`);
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.message ?? "No se pudo descargar la factura.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `factura-orden-${workOrder.id}.pdf`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice("Factura descargada.");
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : "No se pudo descargar la factura.");
+    } finally {
+      setDownloadingId(null);
     }
   }
 
@@ -183,6 +278,17 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
                 <div className="work-order-card-address"><dt>Dirección del trabajo</dt><dd>{workOrder.direccion || "Dirección pendiente"}</dd></div>
               </dl>
               <footer className="work-order-card-actions">
+                {workOrder.estado === "completada" && <button
+                  aria-label={`Descargar factura de ${workOrder.descripcion}`}
+                  className="users-cancel-button work-order-invoice-action"
+                  disabled={downloadingId === workOrder.id}
+                  onClick={() => void downloadInvoice(workOrder)}
+                  title="Descargar factura PDF"
+                  type="button"
+                >
+                  {downloadingId === workOrder.id ? <LoaderCircle aria-hidden="true" className="loading-spinner" size={15} /> : <Download size={15} />}
+                  {downloadingId === workOrder.id ? "Descargando..." : "Factura PDF"}
+                </button>}
                 {workOrder.direccion.trim()
                   ? <a
                     aria-label={`Abrir mapa de ${workOrder.direccion}`}
@@ -223,6 +329,24 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
           </form>
         </section>
       </div>}
+      {signatureFlow && <SignaturePad
+        key={`${signatureFlow.workOrder.id}-${signatureFlow.step}`}
+        description={error || (signatureFlow.step === 1
+          ? "Para completar la orden, primero registrá la firma de conformidad del cliente."
+          : "Firma del cliente aceptada. Ahora registrá la firma del responsable del trabajo.")}
+        initialStrokes={signatureFlow.step === 1 ? signatureFlow.clientStrokes ?? [] : []}
+        onAccept={(strokes) => void acceptSignature(strokes)}
+        onBack={signatureFlow.step === 2 ? () => { setError(""); setSignatureFlow({ ...signatureFlow, step: 1 }); } : undefined}
+        onCancel={() => { if (!saving && !updatingId) { setSignatureFlow(null); setError(""); } }}
+        saving={saving || Boolean(updatingId)}
+        signerName={signatureFlow.step === 1
+          ? signatureFlow.workOrder.cliente
+            ? `${signatureFlow.workOrder.cliente.nombre} ${signatureFlow.workOrder.cliente.apellido}`
+            : "Cliente"
+          : "Responsable técnico"}
+        step={signatureFlow.step}
+        title={signatureFlow.step === 1 ? "Firma del cliente" : "Firma del responsable"}
+      />}
     </section>
   );
 }
