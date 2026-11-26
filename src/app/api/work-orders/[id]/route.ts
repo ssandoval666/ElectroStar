@@ -97,11 +97,40 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
     let updated: WorkOrder;
     if (user.perfil === "Admin") {
+      const hasAdminEditFields = ["tareas", "direccion", "fecha_programada", "usuario_asignado"]
+        .some((field) => Object.hasOwn(body, field));
+      const nextStatus = estado as WorkOrderStatus;
+      if (!hasAdminEditFields) {
+        if (!operatorTransitions[current.estado]?.includes(nextStatus)) {
+          return Response.json({ message: "Ese cambio de estado no está permitido." }, { status: 400 });
+        }
+        let signatures = current.signatures;
+        if (nextStatus === "completada") {
+          const clients = await readJsonEntity<ClientRecord[]>("clientes.json", async () => []);
+          const client = clients.find((candidate) => candidate.idclientes === current.idclientes);
+          if (!client) return Response.json({ message: "No se encontró el cliente de la orden." }, { status: 404 });
+          const signaturePayload = parseSignatures(
+            body.signatures,
+            `${client.nombre} ${client.apellido}`,
+            [user.nombre, user.apellido].filter(Boolean).join(" ") || user.usuario,
+          );
+          if (!signaturePayload) {
+            return Response.json({ message: "Se requieren las firmas del cliente y del responsable para completar la orden." }, { status: 400 });
+          }
+          signatures = signaturePayload;
+        } else {
+          signatures = undefined;
+        }
+        updated = {
+          ...current,
+          estado: nextStatus,
+          ...(signatures ? { signatures } : { signatures: undefined }),
+        };
+      } else {
       const tareas = typeof body.tareas === "string" ? body.tareas.trim() : "";
       const direccion = typeof body.direccion === "string" ? body.direccion.trim() : "";
       const fechaProgramada = typeof body.fecha_programada === "string" ? body.fecha_programada : "";
       const usuarioAsignado = typeof body.usuario_asignado === "string" ? body.usuario_asignado : "";
-      const nextStatus = estado as WorkOrderStatus;
       if (!tareas || tareas.length > 2000 || direccion.length > 240 || !isValidDate(fechaProgramada)) {
         return Response.json({ message: "Revisá las tareas, la dirección y la fecha programada." }, { status: 400 });
       }
@@ -137,6 +166,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         estado: nextStatus,
         ...(signatures ? { signatures } : { signatures: undefined }),
       };
+      }
     } else {
       const nextStatus = estado as WorkOrderStatus;
       if (current.usuario_asignado !== user.idusuario) {

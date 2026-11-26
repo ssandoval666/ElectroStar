@@ -299,14 +299,13 @@ export default function WorkOrdersAdmin({ isAdmin }: { isAdmin: boolean }) {
                     title="Abrir dirección en Google Maps"
                   ><MapPin size={16} /><span>Ver mapa</span></a>
                   : <button aria-label="La orden no tiene dirección" className="users-icon-button work-order-map-action" disabled title="No hay una dirección cargada" type="button"><MapPin size={16} /><span>Sin dirección</span></button>}
-                {isAdmin
-                  ? <button aria-label={`Editar orden ${workOrder.descripcion}`} className="users-cancel-button" onClick={() => editWorkOrder(workOrder)} title="Editar orden" type="button"><Pencil size={15} /> Editar orden</button>
-                  : <label className="work-order-card-status">
-                    <span>Actualizar estado</span>
-                    <select aria-label={`Actualizar estado de ${workOrder.descripcion}`} className="work-order-status-select" disabled={updatingId === workOrder.id} onChange={(event) => void updateStatus(workOrder, event.target.value as WorkOrderStatus)} value={workOrder.estado}>
-                      {statusChoices[workOrder.estado].map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
-                    </select>
-                  </label>}
+                <label className="work-order-card-status">
+                  <span>Actualizar estado</span>
+                  <select aria-label={`Actualizar estado de ${workOrder.descripcion}`} className="work-order-status-select" disabled={updatingId === workOrder.id} onChange={(event) => void updateStatus(workOrder, event.target.value as WorkOrderStatus)} value={workOrder.estado}>
+                    {statusChoices[workOrder.estado].map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
+                  </select>
+                </label>
+                {isAdmin && <button aria-label={`Editar orden ${workOrder.descripcion}`} className="users-cancel-button" onClick={() => editWorkOrder(workOrder)} title="Editar orden" type="button"><Pencil size={15} /> Editar orden</button>}
               </footer>
             </article>;
           }) : <p className="work-order-cards-message">{query ? "No hay órdenes que coincidan con la búsqueda." : isAdmin ? "Todavía no hay órdenes. Se crean al aceptar un presupuesto." : "No tenés órdenes asignadas."}</p>}
